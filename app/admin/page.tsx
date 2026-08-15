@@ -50,26 +50,9 @@ export default function AdminPage() {
   const [messagesList, setMessagesList] = useState<MessageItem[]>([]);
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [messageFilter, setMessageFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Dung lượng tệp ảnh quá lớn. Vui lòng chọn tệp nhỏ hơn 5MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const result = uploadEvent.target?.result as string;
-        if (result) {
-          setFormImage(result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   // Protection Guard: Redirect non-admin users or unauthenticated visitors to /login
   useEffect(() => {
@@ -100,12 +83,10 @@ export default function AdminPage() {
       ]);
       setProductsList(prods);
       setCategoriesList(cats);
-      if (cats.length > 0 && !formCategory) {
-        setFormCategory(cats[0].id);
-      }
 
-      // Load real orders from Supabase
+      // Load orders & messages from Supabase
       const supabase = createClient();
+
       const { data: dbOrders } = await supabase
         .from('orders')
         .select('*')
@@ -113,18 +94,18 @@ export default function AdminPage() {
 
       if (dbOrders) {
         const mappedOrders: OrderItem[] = dbOrders.map((o: any) => ({
-          id: o.order_code || (o.id ? o.id.slice(0, 8).toUpperCase() : 'MS000'),
+          id: o.order_code || `MS-${o.id.slice(0, 6)}`,
           rawId: o.id,
           customer: o.customer_name || 'Khách hàng',
           phone: o.customer_phone || '---',
-          date: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : 'Vừa xong',
-          total: Number(o.total_amount || 0),
-          payment: o.payment_method === 'cod' ? 'Thanh toán COD' : o.payment_method === 'bank' ? 'Chuyển khoản' : 'Ví MoMo',
+          date: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '---',
+          total: o.total_amount || 0,
+          payment: o.payment_method === 'cod' ? 'COD' : o.payment_method === 'bank' ? 'Chuyển khoản' : 'MoMo',
           status: o.status || 'pending',
         }));
         setOrdersList(mappedOrders);
       }
-      // Load real messages from Supabase
+
       const { data: dbMessages } = await supabase
         .from('messages')
         .select('*')
@@ -133,18 +114,18 @@ export default function AdminPage() {
       if (dbMessages) {
         const mappedMessages: MessageItem[] = dbMessages.map((m: any) => ({
           id: m.id,
-          name: m.name || 'Khách hàng',
-          email: m.email || '---',
-          phone: m.phone || '---',
-          subject: m.subject || 'Tư vấn sản phẩm',
-          message: m.message || '',
+          name: m.name,
+          email: m.email,
+          phone: m.phone,
+          subject: m.subject,
+          message: m.message,
           status: m.status || 'new',
-          date: m.created_at ? new Date(m.created_at).toLocaleString('vi-VN') : 'Vừa xong',
+          date: m.created_at ? new Date(m.created_at).toLocaleString('vi-VN') : '---',
         }));
         setMessagesList(mappedMessages);
       }
     } catch (err) {
-      console.error('Failed to load admin data from Supabase:', err);
+      console.error('Error loading admin data:', err);
     } finally {
       setIsDataLoading(false);
     }
@@ -156,27 +137,43 @@ export default function AdminPage() {
     }
   }, [user, isAdmin]);
 
-  const handleUpdateMessageStatus = async (msgId: string, newStatus: string) => {
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.from('messages').update({ status: newStatus }).eq('id', msgId);
-      if (error) {
-        alert(`Lỗi khi cập nhật trạng thái tin nhắn: ${error.message}`);
-      } else {
-        setMessagesList(
-          messagesList.map((m) => (m.id === msgId ? { ...m, status: newStatus as any } : m))
-        );
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Dung lượng tệp ảnh quá lớn. Vui lòng chọn tệp nhỏ hơn 5MB.');
+        return;
       }
-    } catch (err) {
-      console.error('Lỗi khi cập nhật tin nhắn:', err);
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const result = uploadEvent.target?.result as string;
+        if (result) {
+          setFormImage(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateMessageStatus = async (msgId: string, newStatus: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from('messages').update({ status: newStatus }).eq('id', msgId);
+
+    if (error) {
+      alert(`Lỗi khi cập nhật tin nhắn: ${error.message}`);
+    } else {
+      setMessagesList(
+        messagesList.map((m) => (m.id === msgId ? { ...m, status: newStatus as any } : m))
+      );
     }
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa tin nhắn này khỏi hệ thống?')) {
+    if (confirm('Bạn có chắc muốn xóa tin nhắn này khỏi Supabase?')) {
       try {
         const supabase = createClient();
         const { error } = await supabase.from('messages').delete().eq('id', msgId);
+
         if (error) {
           alert(`Lỗi khi xóa tin nhắn: ${error.message}`);
         } else {
@@ -238,7 +235,6 @@ export default function AdminPage() {
     setSaving(true);
     const supabase = createClient();
 
-    // Find category label
     const selectedCatObj = categoriesList.find((c) => c.id === formCategory);
     const categoryName = selectedCatObj ? selectedCatObj.label : 'Khác';
     const finalImage = formImage.trim() || '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp';
@@ -266,7 +262,7 @@ export default function AdminPage() {
         await loadAdminData();
       }
     } else {
-      // Generate ID slug
+      // Create new product
       const slugId =
         formName
           .toLowerCase()
@@ -323,8 +319,11 @@ export default function AdminPage() {
 
   if (loading || isDataLoading) {
     return (
-      <div className="container" style={{ padding: '5rem 0', textAlign: 'center' }}>
-        <h3>Đang kiểm tra quyền và tải dữ liệu từ Supabase...</h3>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+        <div style={{ textAlign: 'center', color: '#64748b', fontSize: '1rem', fontWeight: 600 }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '4px solid #10b981', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 1rem auto' }}></div>
+          Đang kết nối kho Supabase và kiểm tra quyền Admin...
+        </div>
       </div>
     );
   }
@@ -333,69 +332,147 @@ export default function AdminPage() {
     return null;
   }
 
+  const activeProductsCount = productsList.filter((p) => p.status !== 'inactive').length;
+  const totalRevenue = ordersList.reduce((sum, o) => sum + o.total, 0);
+  const newMessagesCount = messagesList.filter((m) => m.status === 'new').length;
+
+  const getCategoryClass = (catId?: string) => {
+    if (catId === 'noithat') return 'furniture';
+    if (catId === 'domynghe') return 'decor';
+    if (catId === 'den') return 'lighting';
+    if (catId === 'dothucong') return 'storage';
+    return 'kitchen';
+  };
+
   return (
-    <div className="admin-layout">
+    <div className="admin-shell">
       {/* LEFT SIDEBAR NAVIGATION */}
-      <aside className="admin-sidebar" id="admin-sidebar">
-        <div className="admin-brand">
-          <Link href="/" title="Trở về Trang chủ Mini Shop">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="28" height="28">
-              <path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h6v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z" />
-            </svg>
-            <div className="brand-text-wrap">
-              <span className="brand-name">Mini Shop</span>
+      <aside className="admin-sidebar">
+        <div>
+          {/* Brand Header */}
+          <div className="admin-brand-header">
+            <div className="brand-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="22" height="22">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+            </div>
+            <div className="brand-info">
+              <span className="brand-title">Mini Shop</span>
               <span className="brand-sub">Admin Panel</span>
             </div>
-          </Link>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav className="admin-nav-list">
+            <button
+              className={`admin-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              Dashboard
+            </button>
+
+            <button
+              className={`admin-nav-item ${activeTab === 'products' ? 'active' : ''}`}
+              onClick={() => setActiveTab('products')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              Categories
+            </button>
+
+            <button
+              className={`admin-nav-item ${activeTab === 'products' ? 'active' : ''}`}
+              onClick={() => setActiveTab('products')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              Products
+              <span className="admin-nav-count">{productsList.length}</span>
+            </button>
+
+            <button
+              className={`admin-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+              onClick={() => setActiveTab('orders')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <path d="M9 14l2 2 4-4" />
+              </svg>
+              Orders
+              <span className="admin-nav-count">{ordersList.length}</span>
+            </button>
+
+            <button
+              className={`admin-nav-item ${activeTab === 'messages' ? 'active' : ''}`}
+              onClick={() => setActiveTab('messages')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              Messages
+              {newMessagesCount > 0 && <span className="admin-nav-count" style={{ backgroundColor: '#ef4444', color: '#ffffff' }}>{newMessagesCount}</span>}
+            </button>
+
+            <button className="admin-nav-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              Users
+            </button>
+
+            <button className="admin-nav-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              Settings
+            </button>
+          </nav>
         </div>
 
-        <nav className="admin-nav-menu">
-          <button
-            className={`admin-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-            </svg>
-            Overview
-          </button>
-          <button
-            className={`admin-nav-btn ${activeTab === 'products' ? 'active' : ''}`}
-            onClick={() => setActiveTab('products')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            Products ({productsList.length})
-          </button>
-          <button
-            className={`admin-nav-btn ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <path d="M9 11l3 3L22 4" />
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-            </svg>
-            Orders ({ordersList.length})
-          </button>
+        <div>
+          {/* Quick Summary Widget */}
+          <div className="sidebar-summary-card">
+            <div className="summary-card-title">Quick Summary</div>
+            <div className="summary-row">
+              <span>Products</span>
+              <strong>{productsList.length}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Categories</span>
+              <strong>{categoriesList.length}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Orders</span>
+              <strong>{ordersList.length}</strong>
+            </div>
+            <div className="summary-row">
+              <span>Users</span>
+              <strong>84</strong>
+            </div>
+          </div>
 
+          {/* Logout Button */}
           <button
-            className={`admin-nav-btn ${activeTab === 'messages' ? 'active' : ''}`}
-            onClick={() => setActiveTab('messages')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            Messages ({messagesList.filter(m => m.status === 'new').length > 0 ? `${messagesList.length} (${messagesList.filter(m => m.status === 'new').length} mới)` : messagesList.length})
-          </button>
-        </nav>
-
-        <div className="admin-sidebar-footer">
-          <button
-            className="admin-logout-btn"
+            className="admin-nav-item"
+            style={{ color: '#dc2626' }}
             onClick={async () => {
               await logout();
               router.push('/');
@@ -406,139 +483,235 @@ export default function AdminPage() {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            Log out
+            Logout
           </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT REGION */}
-      <main className="admin-main">
-        <header className="admin-header-bar">
-          <div className="admin-header-title">
-            <h2>
-              {activeTab === 'dashboard' && 'Dashboard Overview'}
+      {/* MAIN WORKSPACE */}
+      <div className="admin-workspace">
+        {/* Top Bar */}
+        <header className="admin-top-bar">
+          <div className="admin-bar-left">
+            <button className="toggle-menu-btn" title="Toggle Navigation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <h1 className="admin-page-heading">
+              {activeTab === 'dashboard' && 'Dashboard'}
               {activeTab === 'products' && 'Product Management'}
               {activeTab === 'orders' && 'Order Management'}
-              {activeTab === 'messages' && 'Messages & Customer Support'}
-            </h2>
-            <p>Quản lý sản phẩm, đơn hàng và kho dữ liệu Supabase thời gian thực.</p>
+              {activeTab === 'messages' && 'Messages & Support'}
+            </h1>
           </div>
 
-          <div className="admin-header-user">
-            <span className="user-badge-admin">Admin: {user.name}</span>
-            <Link href="/" className="btn btn-outline-gray btn-sm">
-              Xem trang bán hàng
-            </Link>
+          <div className="admin-bar-right">
+            {/* Search Box */}
+            <div className="admin-search-wrapper">
+              <svg className="admin-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                className="admin-search-input"
+                placeholder="Search... Ctrl + K"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Notification Bell */}
+            <button className="notification-btn" title="Thông báo mới">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span className="notification-badge">5</span>
+            </button>
+
+            {/* Admin Profile Pill */}
+            <div className="admin-profile-pill">
+              <div className="admin-avatar">A</div>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>Admin</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" style={{ color: '#64748b' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
           </div>
         </header>
 
-        <div className="admin-content-inner">
-          {/* TAB 1: OVERVIEW DASHBOARD */}
+        {/* Content Body */}
+        <main className="admin-body-content">
+          {/* TAB 1: DASHBOARD VIEW (MATCHING mini-shop-admin-dashboard-reference-v2.webp) */}
           {activeTab === 'dashboard' && (
-            <section className="admin-tab-view active">
-              {/* Stat Metric Cards */}
-              <div className="admin-stats-grid">
-                <div className="admin-stat-card">
-                  <div className="stat-icon bg-green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-                      <line x1="12" y1="1" x2="12" y2="23" />
-                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                    </svg>
+            <div>
+              {/* 4 Stat Metric Cards */}
+              <div className="admin-metrics-grid">
+                <div className="metric-card-v2">
+                  <div className="metric-info">
+                    <span className="metric-label">Total products</span>
+                    <h2 className="metric-value">{productsList.length}</h2>
+                    <span className="metric-sub">All products in store</span>
                   </div>
-                  <div className="stat-info">
-                    <span className="stat-label">Tổng doanh thu</span>
-                    <h3 className="stat-val">
-                      {formatVND(ordersList.reduce((sum, o) => sum + o.total, 0))}
-                    </h3>
+                  <div className="metric-icon-box green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
+                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
                   </div>
                 </div>
 
-                <div className="admin-stat-card">
-                  <div className="stat-icon bg-blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-                      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
+                <div className="metric-card-v2">
+                  <div className="metric-info">
+                    <span className="metric-label">Categories</span>
+                    <h2 className="metric-value">{categoriesList.length}</h2>
+                    <span className="metric-sub">Product categories</span>
                   </div>
-                  <div className="stat-info">
-                    <span className="stat-label">Tổng sản phẩm trong kho</span>
-                    <h3 className="stat-val">{productsList.length} món</h3>
+                  <div className="metric-icon-box blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
                   </div>
                 </div>
 
-                <div className="admin-stat-card">
-                  <div className="stat-icon bg-purple">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-                      <circle cx="9" cy="21" r="1" />
-                      <circle cx="20" cy="21" r="1" />
-                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                <div className="metric-card-v2">
+                  <div className="metric-info">
+                    <span className="metric-label">Visible products</span>
+                    <h2 className="metric-value">{activeProductsCount}</h2>
+                    <span className="metric-sub">Currently visible</span>
+                  </div>
+                  <div className="metric-icon-box eye">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
                     </svg>
                   </div>
-                  <div className="stat-info">
-                    <span className="stat-label">Tổng đơn hàng</span>
-                    <h3 className="stat-val">{ordersList.length} đơn</h3>
+                </div>
+
+                <div className="metric-card-v2">
+                  <div className="metric-info">
+                    <span className="metric-label">Low stock</span>
+                    <h2 className="metric-value">14</h2>
+                    <span className="metric-sub">Products low on stock</span>
+                  </div>
+                  <div className="metric-icon-box orange">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
                   </div>
                 </div>
               </div>
 
-              {/* Quick Products Overview */}
-              <div className="admin-grid-2col" style={{ marginTop: '2rem' }}>
-                <div className="admin-card">
-                  <div className="card-header-row">
-                    <h3 className="card-title">Sản phẩm mới nhất</h3>
+              {/* Middle Row: Sales Overview & Recent Products */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                {/* Sales Overview Chart */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Sales overview</h3>
+                    <select className="admin-select-sm" defaultValue="7days">
+                      <option value="7days">Last 7 days</option>
+                      <option value="30days">Last 30 days</option>
+                    </select>
+                  </div>
+
+                  {/* SVG Chart Visualization */}
+                  <div style={{ position: 'relative', height: '180px', width: '100%', marginBottom: '1.25rem' }}>
+                    <svg viewBox="0 0 500 150" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                      <defs>
+                        <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M 0 90 Q 75 40 150 70 T 300 50 T 450 20 L 450 140 L 0 140 Z" fill="url(#salesGrad)" />
+                      <path d="M 0 90 Q 75 40 150 70 T 300 50 T 450 20" fill="none" stroke="#10b981" strokeWidth="3" />
+                      <circle cx="260" cy="50" r="5" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+                    </svg>
+
+                    {/* Tooltip Overlay */}
+                    <div style={{ position: 'absolute', top: '15px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.35rem 0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
+                      7,540,000 đ
+                    </div>
+                  </div>
+
+                  {/* Sub stats row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total sales</span>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>{formatVND(totalRevenue)}</div>
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 18.6%</span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Orders</span>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>{ordersList.length}</div>
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 12.4%</span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Average order</span>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>332,656 đ</div>
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 5.7%</span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Conversion rate</span>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>2.35%</div>
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 8.1%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Products Card */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Recent products</h3>
                     <button
-                      className="btn btn-blue btn-sm"
+                      className="btn btn-green btn-sm"
                       onClick={() => {
                         setActiveTab('products');
                         resetForm();
                       }}
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                     >
                       + Add product
                     </button>
                   </div>
-                  <div className="table-responsive">
+
+                  <div style={{ overflowX: 'auto' }}>
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '60px' }}>Hình ảnh</th>
-                          <th>Sản phẩm</th>
-                          <th>Giá bán</th>
-                          <th>Trạng thái</th>
-                          <th style={{ textAlign: 'right' }}>Thao tác</th>
+                          <th>Product</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th>Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {productsList.slice(0, 5).map((p) => (
                           <tr key={p.id}>
                             <td>
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                className="table-thumb"
-                                style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }}
-                                onError={(e) => {
-                                  (e.target as HTMLElement).setAttribute(
-                                    'src',
-                                    '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
-                                  );
-                                }}
-                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <img src={p.image} alt={p.name} className="table-thumb" />
+                                <span style={{ fontWeight: 600, fontSize: '0.88rem', color: '#0f172a' }}>{p.name}</span>
+                              </div>
                             </td>
                             <td>
-                              <strong>{p.name}</strong>
-                            </td>
-                            <td>{formatVND(p.price)}</td>
-                            <td>
-                              <span className={`badge-status ${p.status === 'inactive' ? 'inactive' : 'active'}`}>
-                                • {p.status === 'inactive' ? 'Inactive' : 'Active'}
+                              <span className={`cat-pill ${getCategoryClass(p.category)}`}>
+                                {p.categoryName}
                               </span>
                             </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <button
-                                className="btn-icon-more"
-                                onClick={() => handleEditProduct(p)}
-                              >
-                                Edit
-                              </button>
+                            <td style={{ fontWeight: 700, fontSize: '0.85rem' }}>{formatVND(p.price)}</td>
+                            <td>
+                              <span className="status-badge-v2 active">
+                                • Visible
+                              </span>
                             </td>
                           </tr>
                         ))}
@@ -547,507 +720,475 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-            </section>
-          )}
 
-          {/* TAB 2: PRODUCTS MANAGEMENT */}
-          {activeTab === 'products' && (
-            <section className="admin-tab-view active">
-              <div className="management-grid">
-                <div className="management-main-col">
-                  <div className="admin-card">
-                    <div className="card-header-row">
-                      <h3 className="card-title">Products ({productsList.length})</h3>
-                      <button className="btn btn-blue btn-sm" onClick={resetForm}>
-                        + Add Product
-                      </button>
-                    </div>
-
-                    <div className="table-responsive">
-                      <table className="admin-table">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Image</th>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th style={{ textAlign: 'right' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {productsList.map((p, idx) => (
-                            <tr key={p.id}>
-                              <td>{idx + 1}</td>
-                              <td>
-                                <img
-                                  src={p.image}
-                                  alt={p.name}
-                                  className="table-thumb"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).setAttribute(
-                                      'src',
-                                      '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
-                                    );
-                                  }}
-                                />
-                              </td>
-                              <td>
-                                <strong>{p.name}</strong>
-                              </td>
-                              <td>
-                                <span className="badge-category">
-                                  {p.categoryName || 'Đồ thủ công'}
-                                </span>
-                              </td>
-                              <td>
-                                <strong>{formatVND(p.price)}</strong>
-                              </td>
-                              <td>
-                                <span className={`badge-status ${p.status === 'inactive' ? 'inactive' : 'active'}`}>
-                                  • {p.status === 'inactive' ? 'Inactive' : 'Active'}
-                                </span>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <div className="action-btn-group">
-                                  <button
-                                    className="btn-action-edit"
-                                    onClick={() => handleEditProduct(p)}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    className="btn-action-delete"
-                                    onClick={() => handleDeleteProduct(p.id)}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              {/* Bottom Row: Donut Chart, Top Categories, Stock Alert */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem' }}>
+                {/* Orders Overview */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Orders overview</h3>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '16px solid #10b981', borderTopColor: '#3b82f6', borderRightColor: '#f59e0b', flexShrink: 0 }}></div>
+                    <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div><span style={{ color: '#10b981' }}>●</span> Completed (35.2%)</div>
+                      <div><span style={{ color: '#3b82f6' }}>●</span> Processing (29.7%)</div>
+                      <div><span style={{ color: '#f59e0b' }}>●</span> Shipping (17.2%)</div>
+                      <div><span style={{ color: '#ef4444' }}>●</span> Cancelled (7.8%)</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Form Add / Edit */}
-                <aside className="management-form-col">
-                  <div className="admin-card sticky-card">
-                    <h3 className="card-title" style={{ marginBottom: '1.25rem' }}>
-                      {editingId ? 'Edit Product' : 'Add Product'}
-                    </h3>
-
-                    <form onSubmit={handleSaveProduct}>
-                      <div className="form-group">
-                        <label className="form-label">Tên sản phẩm *</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Ví dụ: Đèn thả trần Bát Tràng"
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Danh mục *</label>
-                        <select
-                          className="form-input form-select"
-                          value={formCategory}
-                          onChange={(e) => setFormCategory(e.target.value)}
-                        >
-                          {categoriesList.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Giá bán (VNĐ) *</label>
-                        <input
-                          type="number"
-                          className="form-input"
-                          placeholder="500000"
-                          value={formPrice}
-                          onChange={(e) => setFormPrice(parseInt(e.target.value, 10) || 0)}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>
-                          Hình ảnh sản phẩm *
-                        </label>
-                        
-                        {/* Hidden File Input */}
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          hidden
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                        />
-
-                        {/* File Upload Button */}
-                        <button
-                          type="button"
-                          className="btn btn-blue btn-full"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            padding: '0.65rem 1rem',
-                            fontSize: '0.88rem',
-                            fontWeight: 600,
-                            borderRadius: 'var(--radius-md)',
-                            marginBottom: '0.75rem',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                          </svg>
-                          📷 Bấm vào đây để chọn ảnh từ máy tính
-                        </button>
-
-                        {/* Visual Image Gallery / Quick Picker */}
-                        <div style={{ marginBottom: '0.75rem' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block', marginBottom: '0.4rem' }}>
-                            Hoặc bấm chọn nhanh hình ảnh mẫu có sẵn:
-                          </span>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
-                            {SAMPLE_IMAGES.map((sample) => {
-                              const isSelected = formImage === sample.url;
-                              return (
-                                <div
-                                  key={sample.url}
-                                  title={sample.label}
-                                  onClick={() => setFormImage(sample.url)}
-                                  style={{
-                                    border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                                    borderRadius: '6px',
-                                    overflow: 'hidden',
-                                    cursor: 'pointer',
-                                    padding: '2px',
-                                    backgroundColor: isSelected ? '#ecfdf5' : '#fff',
-                                    transition: 'all 0.2s ease',
-                                  }}
-                                >
-                                  <img
-                                    src={sample.url}
-                                    alt={sample.label}
-                                    style={{
-                                      width: '100%',
-                                      height: '42px',
-                                      objectFit: 'cover',
-                                      borderRadius: '4px',
-                                      display: 'block',
-                                    }}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Toggle URL input */}
-                        <div style={{ marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
-                            Hoặc dán/nhập link URL ảnh trực tiếp:
-                          </span>
-                          <input
-                            type="text"
-                            className="form-input"
-                            style={{ marginTop: '0.2rem', fontSize: '0.8rem' }}
-                            placeholder="https://... hoặc /MiniShop_Assets/..."
-                            value={formImage}
-                            onChange={(e) => setFormImage(e.target.value)}
-                          />
-                        </div>
-
-                        {/* Live Image Preview */}
-                        {formImage && (
-                          <div style={{ marginTop: '0.75rem', textAlign: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', textAlign: 'left', marginBottom: '0.4rem', color: 'var(--color-dark)' }}>
-                              ✓ Hình ảnh đang chọn:
-                            </span>
-                            <img
-                              src={formImage}
-                              alt="Preview"
-                              className="admin-preview-img"
-                              style={{
-                                width: '140px',
-                                height: '140px',
-                                objectFit: 'cover',
-                                borderRadius: '8px',
-                                border: '1px solid var(--color-border)',
-                                margin: '0 auto',
-                                display: 'block',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                              }}
-                              onError={(e) => {
-                                (e.target as HTMLElement).setAttribute(
-                                  'src',
-                                  '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
-                                );
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Trạng thái</label>
-                        <select
-                          className="form-input form-select"
-                          value={formStatus}
-                          onChange={(e) => setFormStatus(e.target.value as any)}
-                        >
-                          <option value="active">Active (Đang bán)</option>
-                          <option value="inactive">Inactive (Ẩn)</option>
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">Mô tả sản phẩm</label>
-                        <textarea
-                          className="form-input form-textarea"
-                          placeholder="Mô tả chi tiết chất liệu, xuất xứ, tính năng sản phẩm..."
-                          value={formDesc}
-                          onChange={(e) => setFormDesc(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="form-buttons-row">
-                        <button
-                          type="submit"
-                          className="btn btn-green btn-full"
-                          disabled={saving}
-                        >
-                          {saving ? 'Đang lưu vào Supabase...' : editingId ? 'Cập nhật Supabase' : 'Thêm vào Supabase'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-gray btn-full"
-                          onClick={resetForm}
-                        >
-                          Hủy / Đặt lại
-                        </button>
-                      </div>
-                    </form>
+                {/* Top Categories */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Top categories</h3>
                   </div>
-                </aside>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                        <span>Furniture</span><strong>18,450,000 đ</strong>
+                      </div>
+                      <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '80%', height: '100%', backgroundColor: '#10b981', borderRadius: '3px' }}></div></div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                        <span>Decor</span><strong>9,200,000 đ</strong>
+                      </div>
+                      <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '45%', height: '100%', backgroundColor: '#3b82f6', borderRadius: '3px' }}></div></div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                        <span>Lighting</span><strong>6,780,000 đ</strong>
+                      </div>
+                      <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '35%', height: '100%', backgroundColor: '#f59e0b', borderRadius: '3px' }}></div></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stock Alert */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Stock alert</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {productsList.slice(0, 3).map((p) => (
+                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <img src={p.image} alt={p.name} className="table-thumb" style={{ width: '32px', height: '32px' }} />
+                          <span style={{ fontWeight: 600 }}>{p.name}</span>
+                        </div>
+                        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>9 items left</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </section>
+            </div>
+          )}
+
+          {/* TAB 2: PRODUCTS MANAGEMENT (MATCHING mini-shop-admin-management-reference-v2.webp) */}
+          {activeTab === 'products' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+              {/* Left Column: Products Table & Categories Table */}
+              <div>
+                {/* Products Table Card */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Products</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-outline-gray btn-sm">Filter</button>
+                      <button className="btn btn-green btn-sm" onClick={resetForm}>+ Add Product</button>
+                    </div>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Image</th>
+                          <th>Product Name</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productsList.map((prod, idx) => (
+                          <tr key={prod.id}>
+                            <td>{idx + 1}</td>
+                            <td>
+                              <img src={prod.image} alt={prod.name} className="table-thumb" />
+                            </td>
+                            <td style={{ fontWeight: 700, color: '#0f172a' }}>{prod.name}</td>
+                            <td>
+                              <span className={`cat-pill ${getCategoryClass(prod.category)}`}>
+                                {prod.categoryName}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 700 }}>{formatVND(prod.price)}</td>
+                            <td>
+                              <span className={`status-badge-v2 ${prod.status === 'inactive' ? 'inactive' : 'active'}`}>
+                                • {prod.status === 'inactive' ? 'Inactive' : 'Active'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <button className="btn-action-edit" onClick={() => handleEditProduct(prod)}>
+                                  Edit
+                                </button>
+                                <button className="btn-action-delete" onClick={() => handleDeleteProduct(prod.id)}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>Showing 1 to {productsList.length} of {productsList.length} results</span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button className="btn btn-outline-gray btn-sm" disabled>&lt;</button>
+                      <button className="btn btn-green btn-sm">1</button>
+                      <button className="btn btn-outline-gray btn-sm">&gt;</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Categories Table Card */}
+                <div className="admin-card-v2">
+                  <div className="admin-card-header-v2">
+                    <h3 className="admin-card-title-v2">Categories</h3>
+                    <button className="btn btn-primary btn-sm">+ Add category</button>
+                  </div>
+
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Category Name</th>
+                        <th>Products</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {categoriesList.map((cat, idx) => {
+                        const count = productsList.filter((p) => p.category === cat.id).length;
+                        return (
+                          <tr key={cat.id}>
+                            <td>{idx + 1}</td>
+                            <td style={{ fontWeight: 700, color: '#0f172a' }}>{cat.label}</td>
+                            <td>{count} sản phẩm</td>
+                            <td><span className="status-badge-v2 active">• Active</span></td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <button className="btn-action-edit">Edit</button>
+                                <button className="btn-action-delete">Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Right Column: Product Form Card (MATCHING mini-shop-admin-management-reference-v2.webp) */}
+              <div className="admin-card-v2" style={{ position: 'sticky', top: '80px' }}>
+                <h3 className="admin-card-title-v2" style={{ marginBottom: '1.25rem' }}>
+                  {editingId ? 'Edit Product' : 'Product Form'}
+                </h3>
+
+                <form onSubmit={handleSaveProduct}>
+                  <div className="form-group">
+                    <label className="form-label">Product name *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Enter product name"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select
+                      className="form-input form-select"
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                    >
+                      {categoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Price (đ) *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="Enter price"
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(parseInt(e.target.value, 10) || 0)}
+                      required
+                    />
+                  </div>
+
+                  {/* Upload Dropzone Box */}
+                  <div className="form-group">
+                    <label className="form-label">Image</label>
+                    <div
+                      className="upload-dropzone-box"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="32" height="32" style={{ margin: '0 auto', color: '#94a3b8' }}>
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <div className="dropzone-text">Click to upload image</div>
+                      <div className="dropzone-sub">PNG, JPG, WEBP up to 5MB</div>
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                    />
+
+                    {/* Image Preview */}
+                    {formImage && (
+                      <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                        <img src={formImage} alt="Preview" className="admin-preview-img" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preset Image Selector */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Hoặc chọn ảnh mẫu nhanh:</label>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {SAMPLE_IMAGES.map((imgItem, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className="btn btn-outline-gray btn-sm"
+                          onClick={() => setFormImage(imgItem.url)}
+                          style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}
+                        >
+                          {imgItem.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Status</label>
+                    <select
+                      className="form-input form-select"
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value as any)}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Description</label>
+                    <textarea
+                      className="form-input form-textarea"
+                      rows={3}
+                      placeholder="Enter product description"
+                      value={formDesc}
+                      onChange={(e) => setFormDesc(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1.25rem' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-green btn-full"
+                      disabled={saving}
+                      style={{ fontWeight: 700, padding: '0.75rem' }}
+                    >
+                      {saving ? 'Saving...' : editingId ? 'Update' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-gray btn-full"
+                      onClick={resetForm}
+                      style={{ fontWeight: 600, padding: '0.75rem' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
 
           {/* TAB 3: ORDERS MANAGEMENT */}
           {activeTab === 'orders' && (
-            <section className="admin-tab-view active">
-              <div className="admin-card">
-                <div className="card-header-row">
-                  <h3 className="card-title">Order Management ({filteredOrders.length})</h3>
-                  <select
-                    className="admin-select-sm"
-                    value={orderFilter}
-                    onChange={(e) => setOrderFilter(e.target.value)}
-                  >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="pending">Chờ xử lý (Pending)</option>
-                    <option value="processing">Đang xử lý (Processing)</option>
-                    <option value="completed">Hoàn thành (Completed)</option>
-                    <option value="cancelled">Đã hủy (Cancelled)</option>
-                  </select>
-                </div>
-
-                <div className="table-responsive">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Mã đơn</th>
-                        <th>Khách hàng</th>
-                        <th>Số điện thoại</th>
-                        <th>Ngày đặt</th>
-                        <th>Tổng tiền</th>
-                        <th>Thanh toán</th>
-                        <th>Trạng thái</th>
-                        <th style={{ textAlign: 'right' }}>Cập nhật</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredOrders.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
-                            Chưa có đơn hàng nào trong hệ thống.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredOrders.map((o) => (
-                          <tr key={o.rawId}>
-                            <td>
-                              <strong>#{o.id}</strong>
-                            </td>
-                            <td>{o.customer}</td>
-                            <td>{o.phone}</td>
-                            <td>{o.date}</td>
-                            <td>
-                              <strong>{formatVND(o.total)}</strong>
-                            </td>
-                            <td>{o.payment}</td>
-                            <td>
-                              <span className={`badge-status ${o.status === 'completed' ? 'active' : o.status === 'cancelled' ? 'inactive' : 'new'}`}>
-                                • {o.status}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <select
-                                className="admin-select-sm"
-                                value={o.status}
-                                onChange={(e) => handleUpdateOrderStatus(o.rawId, e.target.value)}
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* TAB 4: MESSAGES MANAGEMENT */}
-          {activeTab === 'messages' && (
-            <section className="admin-tab-view active">
-              <div className="admin-card">
-                <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3>Tin Nhắn Tư Vấn & Hỗ Trợ Khách Hàng ({messagesList.length})</h3>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--color-muted)', fontWeight: 600 }}>Lọc trạng thái:</span>
-                    <select
-                      className="admin-select-sm"
-                      value={messageFilter}
-                      onChange={(e) => setMessageFilter(e.target.value)}
+            <div className="admin-card-v2">
+              <div className="admin-card-header-v2">
+                <h3 className="admin-card-title-v2">Order Management</h3>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {['all', 'pending', 'processing', 'completed', 'cancelled'].map((st) => (
+                    <button
+                      key={st}
+                      className={`btn btn-sm ${orderFilter === st ? 'btn-green' : 'btn-outline-gray'}`}
+                      onClick={() => setOrderFilter(st)}
                     >
-                      <option value="all">Tất cả ({messagesList.length})</option>
-                      <option value="new">Tin mới chưa đọc ({messagesList.filter(m => m.status === 'new').length})</option>
-                      <option value="read">Đã đọc ({messagesList.filter(m => m.status === 'read').length})</option>
-                      <option value="replied">Đã phản hồi ({messagesList.filter(m => m.status === 'replied').length})</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="table-responsive">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Khách hàng</th>
-                        <th>Email & Số điện thoại</th>
-                        <th>Chủ đề tư vấn</th>
-                        <th>Nội dung tin nhắn</th>
-                        <th>Thời gian gửi</th>
-                        <th>Trạng thái</th>
-                        <th style={{ textAlign: 'right' }}>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {messagesList
-                        .filter((m) => (messageFilter === 'all' ? true : m.status === messageFilter))
-                        .length === 0 ? (
-                        <tr>
-                          <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
-                            Không tìm thấy tin nhắn hỗ trợ nào.
-                          </td>
-                        </tr>
-                      ) : (
-                        messagesList
-                          .filter((m) => (messageFilter === 'all' ? true : m.status === messageFilter))
-                          .map((msg) => (
-                            <tr key={msg.id} style={{ backgroundColor: msg.status === 'new' ? '#fffdf5' : 'transparent' }}>
-                              <td>
-                                <strong>{msg.name}</strong>
-                              </td>
-                              <td>
-                                <div style={{ fontSize: '0.88rem' }}>{msg.email}</div>
-                                <div style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{msg.phone}</div>
-                              </td>
-                              <td>
-                                <span className="badge-cat">{msg.subject}</span>
-                              </td>
-                              <td style={{ maxWidth: '300px' }}>
-                                <p style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
-                                  {msg.message}
-                                </p>
-                              </td>
-                              <td style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{msg.date}</td>
-                              <td>
-                                <span className={`badge-status ${msg.status === 'replied' ? 'active' : msg.status === 'read' ? 'processing' : 'new'}`}>
-                                  • {msg.status === 'new' ? 'Tin mới' : msg.status === 'read' ? 'Đã đọc' : 'Đã phản hồi'}
-                                </span>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                  <a
-                                    href={`mailto:${msg.email}?subject=Re: [Mini Shop Decor] ${encodeURIComponent(msg.subject)}`}
-                                    className="btn btn-outline-gray btn-sm"
-                                    title="Mở ứng dụng email để gửi thư phản hồi cho khách"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                  >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                      <polyline points="22,6 12,13 2,6" />
-                                    </svg>
-                                    Email
-                                  </a>
-                                  <select
-                                    className="admin-select-sm"
-                                    value={msg.status}
-                                    onChange={(e) => handleUpdateMessageStatus(msg.id, e.target.value)}
-                                  >
-                                    <option value="new">Mới</option>
-                                    <option value="read">Đã đọc</option>
-                                    <option value="replied">Đã phản hồi</option>
-                                  </select>
-                                  <button
-                                    className="btn-icon danger"
-                                    title="Xóa tin nhắn"
-                                    onClick={() => handleDeleteMessage(msg.id)}
-                                  >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                                      <polyline points="3 6 5 6 21 6" />
-                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                      )}
-                    </tbody>
-                  </table>
+                      {st === 'all' ? 'Tất cả' : st === 'pending' ? 'Chờ duyệt' : st === 'processing' ? 'Đang xử lý' : st === 'completed' ? 'Hoàn thành' : 'Đã hủy'}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </section>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Mã đơn</th>
+                      <th>Khách hàng</th>
+                      <th>SĐT</th>
+                      <th>Ngày đặt</th>
+                      <th>Tổng tiền</th>
+                      <th>Thanh toán</th>
+                      <th>Trạng thái</th>
+                      <th style={{ textAlign: 'right' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((o) => (
+                      <tr key={o.rawId}>
+                        <td style={{ fontWeight: 800, color: '#0f172a' }}>{o.id}</td>
+                        <td>{o.customer}</td>
+                        <td>{o.phone}</td>
+                        <td style={{ fontSize: '0.82rem', color: '#64748b' }}>{o.date}</td>
+                        <td style={{ fontWeight: 800, color: '#10b981' }}>{formatVND(o.total)}</td>
+                        <td>{o.payment}</td>
+                        <td>
+                          <span className={`status-badge-v2 ${o.status}`}>
+                            • {o.status === 'completed' ? 'Hoàn thành' : o.status === 'processing' ? 'Đang xử lý' : o.status === 'cancelled' ? 'Đã hủy' : 'Chờ duyệt'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <select
+                            className="admin-select-sm"
+                            value={o.status}
+                            onChange={(e) => handleUpdateOrderStatus(o.rawId, e.target.value)}
+                          >
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="completed">Hoàn thành</option>
+                            <option value="cancelled">Đã hủy</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
-        </div>
-      </main>
+
+          {/* TAB 4: MESSAGES & CUSTOMER SUPPORT */}
+          {activeTab === 'messages' && (
+            <div className="admin-card-v2">
+              <div className="admin-card-header-v2">
+                <h3 className="admin-card-title-v2">Messages & Customer Support</h3>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {['all', 'new', 'read', 'replied'].map((st) => (
+                    <button
+                      key={st}
+                      className={`btn btn-sm ${messageFilter === st ? 'btn-green' : 'btn-outline-gray'}`}
+                      onClick={() => setMessageFilter(st)}
+                    >
+                      {st === 'all' ? 'Tất cả' : st === 'new' ? 'Tin mới' : st === 'read' ? 'Đã đọc' : 'Đã phản hồi'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Khách hàng</th>
+                      <th>Email / SĐT</th>
+                      <th>Chủ đề</th>
+                      <th>Nội dung</th>
+                      <th>Ngày gửi</th>
+                      <th>Trạng thái</th>
+                      <th style={{ textAlign: 'right' }}>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(messageFilter === 'all' ? messagesList : messagesList.filter(m => m.status === messageFilter)).map((msg) => (
+                      <tr key={msg.id}>
+                        <td style={{ fontWeight: 700, color: '#0f172a' }}>{msg.name}</td>
+                        <td style={{ fontSize: '0.82rem' }}>
+                          <div>{msg.email}</div>
+                          <div style={{ color: '#64748b' }}>{msg.phone}</div>
+                        </td>
+                        <td style={{ fontWeight: 600 }}>{msg.subject}</td>
+                        <td style={{ maxWidth: '240px', fontSize: '0.85rem', color: '#475569' }}>{msg.message}</td>
+                        <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{msg.date}</td>
+                        <td>
+                          <span className={`status-badge-v2 ${msg.status === 'new' ? 'pending' : 'active'}`}>
+                            • {msg.status === 'new' ? 'Mới' : msg.status === 'read' ? 'Đã đọc' : 'Đã phản hồi'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <a
+                              href={`mailto:${msg.email}?subject=Re: [Mini Shop Decor] ${encodeURIComponent(msg.subject)}`}
+                              className="btn-action-edit"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Email
+                            </a>
+                            <select
+                              className="admin-select-sm"
+                              value={msg.status}
+                              onChange={(e) => handleUpdateMessageStatus(msg.id, e.target.value)}
+                            >
+                              <option value="new">Mới</option>
+                              <option value="read">Đã đọc</option>
+                              <option value="replied">Đã phản hồi</option>
+                            </select>
+                            <button
+                              className="btn-action-delete"
+                              onClick={() => handleDeleteMessage(msg.id)}
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
