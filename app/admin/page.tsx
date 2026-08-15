@@ -360,7 +360,7 @@ export default function AdminPage() {
             </div>
             <div className="brand-info">
               <span className="brand-title">Mini Shop</span>
-              <span className="brand-sub">Admin Panel</span>
+              <span className="brand-sub">Trang Quản Trị</span>
             </div>
           </div>
 
@@ -376,7 +376,7 @@ export default function AdminPage() {
                 <rect x="14" y="14" width="7" height="7" />
                 <rect x="3" y="14" width="7" height="7" />
               </svg>
-              Dashboard
+              Bảng điều khiển
             </button>
 
             <button
@@ -386,7 +386,7 @@ export default function AdminPage() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
               </svg>
-              Categories
+              Danh mục sản phẩm
             </button>
 
             <button
@@ -398,7 +398,7 @@ export default function AdminPage() {
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
-              Products
+              Quản lý sản phẩm
               <span className="admin-nav-count">{productsList.length}</span>
             </button>
 
@@ -411,7 +411,7 @@ export default function AdminPage() {
                 <rect x="9" y="3" width="6" height="4" rx="1" />
                 <path d="M9 14l2 2 4-4" />
               </svg>
-              Orders
+              Quản lý đơn hàng
               <span className="admin-nav-count">{ordersList.length}</span>
             </button>
 
@@ -423,8 +423,8 @@ export default function AdminPage() {
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
-              Messages
-              {newMessagesCount > 0 && <span className="admin-nav-count" style={{ backgroundColor: '#ef4444', color: '#ffffff' }}>{newMessagesCount}</span>}
+              Tin nhắn hỗ trợ
+              {newMessagesCount > 0 && <span className="admin-nav-count" style={{ backgroundColor: '#ef4444', color: '#ffffff' }}>{newMessagesCount} mới</span>}
             </button>
 
             <button className="admin-nav-item">
@@ -434,7 +434,7 @@ export default function AdminPage() {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
-              Users
+              Khách hàng
             </button>
 
             <button className="admin-nav-item">
@@ -442,7 +442,7 @@ export default function AdminPage() {
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
-              Settings
+              Cài đặt hệ thống
             </button>
           </nav>
         </div>
@@ -450,21 +450,21 @@ export default function AdminPage() {
         <div>
           {/* Quick Summary Widget */}
           <div className="sidebar-summary-card">
-            <div className="summary-card-title">Quick Summary</div>
+            <div className="summary-card-title">Tóm tắt nhanh</div>
             <div className="summary-row">
-              <span>Products</span>
+              <span>Sản phẩm</span>
               <strong>{productsList.length}</strong>
             </div>
             <div className="summary-row">
-              <span>Categories</span>
+              <span>Danh mục</span>
               <strong>{categoriesList.length}</strong>
             </div>
             <div className="summary-row">
-              <span>Orders</span>
+              <span>Đơn hàng</span>
               <strong>{ordersList.length}</strong>
             </div>
             <div className="summary-row">
-              <span>Users</span>
+              <span>Khách hàng</span>
               <strong>84</strong>
             </div>
           </div>
@@ -483,7 +483,7 @@ export default function AdminPage() {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            Logout
+            Đăng xuất
           </button>
         </div>
       </aside>
@@ -493,7 +493,7 @@ export default function AdminPage() {
         {/* Top Bar */}
         <header className="admin-top-bar">
           <div className="admin-bar-left">
-            <button className="toggle-menu-btn" title="Toggle Navigation">
+            <button className="toggle-menu-btn" title="Đóng/Mở menu">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                 <line x1="3" y1="12" x2="21" y2="12" />
                 <line x1="3" y1="6" x2="21" y2="6" />
@@ -501,10 +501,10 @@ export default function AdminPage() {
               </svg>
             </button>
             <h1 className="admin-page-heading">
-              {activeTab === 'dashboard' && 'Dashboard'}
-              {activeTab === 'products' && 'Product Management'}
-              {activeTab === 'orders' && 'Order Management'}
-              {activeTab === 'messages' && 'Messages & Support'}
+              {activeTab === 'dashboard' && 'Bảng điều khiển tổng quan'}
+              {activeTab === 'products' && 'Quản lý sản phẩm'}
+              {activeTab === 'orders' && 'Quản lý đơn hàng'}
+              {activeTab === 'messages' && 'Tin nhắn & Hỗ trợ khách hàng'}
             </h1>
           </div>
 
@@ -518,7 +518,7 @@ export default function AdminPage() {
               <input
                 type="text"
                 className="admin-search-input"
-                placeholder="Search... Ctrl + K"
+                placeholder="Tìm kiếm... Ctrl + K"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -536,7 +536,7 @@ export default function AdminPage() {
             {/* Admin Profile Pill */}
             <div className="admin-profile-pill">
               <div className="admin-avatar">A</div>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>Admin</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>Quản trị viên</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" style={{ color: '#64748b' }}>
                 <polyline points="6 9 12 15 18 9" />
               </svg>
@@ -553,9 +553,9 @@ export default function AdminPage() {
               <div className="admin-metrics-grid">
                 <div className="metric-card-v2">
                   <div className="metric-info">
-                    <span className="metric-label">Total products</span>
+                    <span className="metric-label">Tổng sản phẩm</span>
                     <h2 className="metric-value">{productsList.length}</h2>
-                    <span className="metric-sub">All products in store</span>
+                    <span className="metric-sub">Tất cả sản phẩm trong kho</span>
                   </div>
                   <div className="metric-icon-box green">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
@@ -568,9 +568,9 @@ export default function AdminPage() {
 
                 <div className="metric-card-v2">
                   <div className="metric-info">
-                    <span className="metric-label">Categories</span>
+                    <span className="metric-label">Danh mục</span>
                     <h2 className="metric-value">{categoriesList.length}</h2>
-                    <span className="metric-sub">Product categories</span>
+                    <span className="metric-sub">Danh mục sản phẩm</span>
                   </div>
                   <div className="metric-icon-box blue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
@@ -581,9 +581,9 @@ export default function AdminPage() {
 
                 <div className="metric-card-v2">
                   <div className="metric-info">
-                    <span className="metric-label">Visible products</span>
+                    <span className="metric-label">Sản phẩm đang hiển thị</span>
                     <h2 className="metric-value">{activeProductsCount}</h2>
-                    <span className="metric-sub">Currently visible</span>
+                    <span className="metric-sub">Đang mở bán</span>
                   </div>
                   <div className="metric-icon-box eye">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
@@ -595,9 +595,9 @@ export default function AdminPage() {
 
                 <div className="metric-card-v2">
                   <div className="metric-info">
-                    <span className="metric-label">Low stock</span>
+                    <span className="metric-label">Sản phẩm sắp hết</span>
                     <h2 className="metric-value">14</h2>
-                    <span className="metric-sub">Products low on stock</span>
+                    <span className="metric-sub">Cần nhập thêm hàng</span>
                   </div>
                   <div className="metric-icon-box orange">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
@@ -614,10 +614,10 @@ export default function AdminPage() {
                 {/* Sales Overview Chart */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Sales overview</h3>
+                    <h3 className="admin-card-title-v2">Tổng quan doanh thu</h3>
                     <select className="admin-select-sm" defaultValue="7days">
-                      <option value="7days">Last 7 days</option>
-                      <option value="30days">Last 30 days</option>
+                      <option value="7days">7 ngày qua</option>
+                      <option value="30days">30 ngày qua</option>
                     </select>
                   </div>
 
@@ -645,22 +645,22 @@ export default function AdminPage() {
                   {/* Sub stats row */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total sales</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng doanh thu</span>
                       <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>{formatVND(totalRevenue)}</div>
                       <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 18.6%</span>
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Orders</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Đơn hàng</span>
                       <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>{ordersList.length}</div>
                       <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 12.4%</span>
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Average order</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Giá trị TB/Đơn</span>
                       <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>332,656 đ</div>
                       <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 5.7%</span>
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Conversion rate</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tỷ lệ chuyển đổi</span>
                       <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>2.35%</div>
                       <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>↑ 8.1%</span>
                     </div>
@@ -670,7 +670,7 @@ export default function AdminPage() {
                 {/* Recent Products Card */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Recent products</h3>
+                    <h3 className="admin-card-title-v2">Sản phẩm mới cập nhật</h3>
                     <button
                       className="btn btn-green btn-sm"
                       onClick={() => {
@@ -679,7 +679,7 @@ export default function AdminPage() {
                       }}
                       style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
                     >
-                      + Add product
+                      + Thêm sản phẩm
                     </button>
                   </div>
 
@@ -687,10 +687,10 @@ export default function AdminPage() {
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th>Product</th>
-                          <th>Category</th>
-                          <th>Price</th>
-                          <th>Status</th>
+                          <th>Sản phẩm</th>
+                          <th>Danh mục</th>
+                          <th>Giá bán</th>
+                          <th>Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -710,7 +710,7 @@ export default function AdminPage() {
                             <td style={{ fontWeight: 700, fontSize: '0.85rem' }}>{formatVND(p.price)}</td>
                             <td>
                               <span className="status-badge-v2 active">
-                                • Visible
+                                • Đang hiển thị
                               </span>
                             </td>
                           </tr>
@@ -726,15 +726,15 @@ export default function AdminPage() {
                 {/* Orders Overview */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Orders overview</h3>
+                    <h3 className="admin-card-title-v2">Phân bổ đơn hàng</h3>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '16px solid #10b981', borderTopColor: '#3b82f6', borderRightColor: '#f59e0b', flexShrink: 0 }}></div>
                     <div style={{ fontSize: '0.8rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      <div><span style={{ color: '#10b981' }}>●</span> Completed (35.2%)</div>
-                      <div><span style={{ color: '#3b82f6' }}>●</span> Processing (29.7%)</div>
-                      <div><span style={{ color: '#f59e0b' }}>●</span> Shipping (17.2%)</div>
-                      <div><span style={{ color: '#ef4444' }}>●</span> Cancelled (7.8%)</div>
+                      <div><span style={{ color: '#10b981' }}>●</span> Hoàn thành (35.2%)</div>
+                      <div><span style={{ color: '#3b82f6' }}>●</span> Đang xử lý (29.7%)</div>
+                      <div><span style={{ color: '#f59e0b' }}>●</span> Đang giao hàng (17.2%)</div>
+                      <div><span style={{ color: '#ef4444' }}>●</span> Đã hủy (7.8%)</div>
                     </div>
                   </div>
                 </div>
@@ -742,24 +742,24 @@ export default function AdminPage() {
                 {/* Top Categories */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Top categories</h3>
+                    <h3 className="admin-card-title-v2">Top danh mục bán chạy</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                        <span>Furniture</span><strong>18,450,000 đ</strong>
+                        <span>Nội thất phòng khách</span><strong>18,450,000 đ</strong>
                       </div>
                       <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '80%', height: '100%', backgroundColor: '#10b981', borderRadius: '3px' }}></div></div>
                     </div>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                        <span>Decor</span><strong>9,200,000 đ</strong>
+                        <span>Đồ mỹ nghệ decor</span><strong>9,200,000 đ</strong>
                       </div>
                       <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '45%', height: '100%', backgroundColor: '#3b82f6', borderRadius: '3px' }}></div></div>
                     </div>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                        <span>Lighting</span><strong>6,780,000 đ</strong>
+                        <span>Đèn trang trí</span><strong>6,780,000 đ</strong>
                       </div>
                       <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px' }}><div style={{ width: '35%', height: '100%', backgroundColor: '#f59e0b', borderRadius: '3px' }}></div></div>
                     </div>
@@ -769,7 +769,7 @@ export default function AdminPage() {
                 {/* Stock Alert */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Stock alert</h3>
+                    <h3 className="admin-card-title-v2">Cảnh báo tồn kho</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     {productsList.slice(0, 3).map((p) => (
@@ -778,7 +778,7 @@ export default function AdminPage() {
                           <img src={p.image} alt={p.name} className="table-thumb" style={{ width: '32px', height: '32px' }} />
                           <span style={{ fontWeight: 600 }}>{p.name}</span>
                         </div>
-                        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>9 items left</span>
+                        <span style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>Còn lại 9 món</span>
                       </div>
                     ))}
                   </div>
@@ -795,10 +795,10 @@ export default function AdminPage() {
                 {/* Products Table Card */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Products</h3>
+                    <h3 className="admin-card-title-v2">Danh sách sản phẩm</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button className="btn btn-outline-gray btn-sm">Filter</button>
-                      <button className="btn btn-green btn-sm" onClick={resetForm}>+ Add Product</button>
+                      <button className="btn btn-outline-gray btn-sm">Bộ lọc</button>
+                      <button className="btn btn-green btn-sm" onClick={resetForm}>+ Thêm sản phẩm</button>
                     </div>
                   </div>
 
@@ -807,12 +807,12 @@ export default function AdminPage() {
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>Image</th>
-                          <th>Product Name</th>
-                          <th>Category</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
+                          <th>Hình ảnh</th>
+                          <th>Tên sản phẩm</th>
+                          <th>Danh mục</th>
+                          <th>Giá bán</th>
+                          <th>Trạng thái</th>
+                          <th style={{ textAlign: 'right' }}>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -831,16 +831,16 @@ export default function AdminPage() {
                             <td style={{ fontWeight: 700 }}>{formatVND(prod.price)}</td>
                             <td>
                               <span className={`status-badge-v2 ${prod.status === 'inactive' ? 'inactive' : 'active'}`}>
-                                • {prod.status === 'inactive' ? 'Inactive' : 'Active'}
+                                • {prod.status === 'inactive' ? 'Tạm ẩn' : 'Đang bán'}
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                                 <button className="btn-action-edit" onClick={() => handleEditProduct(prod)}>
-                                  Edit
+                                  Sửa
                                 </button>
                                 <button className="btn-action-delete" onClick={() => handleDeleteProduct(prod.id)}>
-                                  Delete
+                                  Xóa
                                 </button>
                               </div>
                             </td>
@@ -852,7 +852,7 @@ export default function AdminPage() {
 
                   {/* Pagination Footer */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
-                    <span>Showing 1 to {productsList.length} of {productsList.length} results</span>
+                    <span>Hiển thị 1 đến {productsList.length} trong {productsList.length} sản phẩm</span>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                       <button className="btn btn-outline-gray btn-sm" disabled>&lt;</button>
                       <button className="btn btn-green btn-sm">1</button>
@@ -864,18 +864,18 @@ export default function AdminPage() {
                 {/* Categories Table Card */}
                 <div className="admin-card-v2">
                   <div className="admin-card-header-v2">
-                    <h3 className="admin-card-title-v2">Categories</h3>
-                    <button className="btn btn-primary btn-sm">+ Add category</button>
+                    <h3 className="admin-card-title-v2">Danh mục sản phẩm</h3>
+                    <button className="btn btn-primary btn-sm">+ Thêm danh mục</button>
                   </div>
 
                   <table className="admin-table">
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Category Name</th>
-                        <th>Products</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
+                        <th>Tên danh mục</th>
+                        <th>Số sản phẩm</th>
+                        <th>Trạng thái</th>
+                        <th style={{ textAlign: 'right' }}>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -886,11 +886,11 @@ export default function AdminPage() {
                             <td>{idx + 1}</td>
                             <td style={{ fontWeight: 700, color: '#0f172a' }}>{cat.label}</td>
                             <td>{count} sản phẩm</td>
-                            <td><span className="status-badge-v2 active">• Active</span></td>
+                            <td><span className="status-badge-v2 active">• Đang bán</span></td>
                             <td style={{ textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                                <button className="btn-action-edit">Edit</button>
-                                <button className="btn-action-delete">Delete</button>
+                                <button className="btn-action-edit">Sửa</button>
+                                <button className="btn-action-delete">Xóa</button>
                               </div>
                             </td>
                           </tr>
@@ -904,16 +904,16 @@ export default function AdminPage() {
               {/* Right Column: Product Form Card (MATCHING mini-shop-admin-management-reference-v2.webp) */}
               <div className="admin-card-v2" style={{ position: 'sticky', top: '80px' }}>
                 <h3 className="admin-card-title-v2" style={{ marginBottom: '1.25rem' }}>
-                  {editingId ? 'Edit Product' : 'Product Form'}
+                  {editingId ? 'Chỉnh sửa sản phẩm' : 'Biểu mẫu sản phẩm'}
                 </h3>
 
                 <form onSubmit={handleSaveProduct}>
                   <div className="form-group">
-                    <label className="form-label">Product name *</label>
+                    <label className="form-label">Tên sản phẩm *</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Enter product name"
+                      placeholder="Nhập tên sản phẩm..."
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       required
@@ -921,7 +921,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Category</label>
+                    <label className="form-label">Danh mục sản phẩm</label>
                     <select
                       className="form-input form-select"
                       value={formCategory}
@@ -934,11 +934,11 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Price (đ) *</label>
+                    <label className="form-label">Giá bán (VNĐ) *</label>
                     <input
                       type="number"
                       className="form-input"
-                      placeholder="Enter price"
+                      placeholder="Nhập giá bán..."
                       value={formPrice}
                       onChange={(e) => setFormPrice(parseInt(e.target.value, 10) || 0)}
                       required
@@ -947,7 +947,7 @@ export default function AdminPage() {
 
                   {/* Upload Dropzone Box */}
                   <div className="form-group">
-                    <label className="form-label">Image</label>
+                    <label className="form-label">Hình ảnh sản phẩm</label>
                     <div
                       className="upload-dropzone-box"
                       onClick={() => fileInputRef.current?.click()}
@@ -957,8 +957,8 @@ export default function AdminPage() {
                         <circle cx="8.5" cy="8.5" r="1.5" />
                         <polyline points="21 15 16 10 5 21" />
                       </svg>
-                      <div className="dropzone-text">Click to upload image</div>
-                      <div className="dropzone-sub">PNG, JPG, WEBP up to 5MB</div>
+                      <div className="dropzone-text">Bấm để tải ảnh lên</div>
+                      <div className="dropzone-sub">Định dạng PNG, JPG, WEBP dưới 5MB</div>
                     </div>
                     <input
                       type="file"
@@ -971,7 +971,7 @@ export default function AdminPage() {
                     {/* Image Preview */}
                     {formImage && (
                       <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
-                        <img src={formImage} alt="Preview" className="admin-preview-img" />
+                        <img src={formImage} alt="Xem trước" className="admin-preview-img" />
                       </div>
                     )}
                   </div>
@@ -995,23 +995,23 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Status</label>
+                    <label className="form-label">Trạng thái mở bán</label>
                     <select
                       className="form-input form-select"
                       value={formStatus}
                       onChange={(e) => setFormStatus(e.target.value as any)}
                     >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="active">Hiển thị (Đang bán)</option>
+                      <option value="inactive">Tạm ẩn</option>
                     </select>
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Description</label>
+                    <label className="form-label">Mô tả sản phẩm</label>
                     <textarea
                       className="form-input form-textarea"
                       rows={3}
-                      placeholder="Enter product description"
+                      placeholder="Nhập mô tả sản phẩm..."
                       value={formDesc}
                       onChange={(e) => setFormDesc(e.target.value)}
                     />
@@ -1024,7 +1024,7 @@ export default function AdminPage() {
                       disabled={saving}
                       style={{ fontWeight: 700, padding: '0.75rem' }}
                     >
-                      {saving ? 'Saving...' : editingId ? 'Update' : 'Save'}
+                      {saving ? 'Đang lưu...' : editingId ? 'Cập nhật' : 'Lưu sản phẩm'}
                     </button>
                     <button
                       type="button"
@@ -1032,7 +1032,7 @@ export default function AdminPage() {
                       onClick={resetForm}
                       style={{ fontWeight: 600, padding: '0.75rem' }}
                     >
-                      Cancel
+                      Hủy bỏ
                     </button>
                   </div>
                 </form>
@@ -1044,7 +1044,7 @@ export default function AdminPage() {
           {activeTab === 'orders' && (
             <div className="admin-card-v2">
               <div className="admin-card-header-v2">
-                <h3 className="admin-card-title-v2">Order Management</h3>
+                <h3 className="admin-card-title-v2">Quản lý đơn hàng</h3>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {['all', 'pending', 'processing', 'completed', 'cancelled'].map((st) => (
                     <button
@@ -1110,7 +1110,7 @@ export default function AdminPage() {
           {activeTab === 'messages' && (
             <div className="admin-card-v2">
               <div className="admin-card-header-v2">
-                <h3 className="admin-card-title-v2">Messages & Customer Support</h3>
+                <h3 className="admin-card-title-v2">Tin nhắn & Hỗ trợ khách hàng</h3>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {['all', 'new', 'read', 'replied'].map((st) => (
                     <button
