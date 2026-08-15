@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, getProductById } from '@/data/products';
+import { Product } from '@/data/products';
+import { getProductsFromSupabase, getProductByIdFromSupabase } from '@/utils/supabase/services';
 
 export interface CartItem {
   id: string;
@@ -14,7 +15,7 @@ export interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (productId: string, quantity?: number) => void;
+  addToCart: (productId: string, quantity?: number) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
@@ -35,15 +36,45 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [appliedCouponDiscount, setAppliedCouponDiscount] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Synchronize cart with latest Supabase product prices on mount
   useEffect(() => {
-    try {
-      const data = localStorage.getItem(CART_STORAGE_KEY);
-      if (data) {
-        setCart(JSON.parse(data));
+    async function syncCartWithSupabase() {
+      try {
+        const data = localStorage.getItem(CART_STORAGE_KEY);
+        if (!data) return;
+        const localCart: CartItem[] = JSON.parse(data);
+        if (!localCart || localCart.length === 0) return;
+
+        // Fetch latest products from Supabase
+        const freshProducts = await getProductsFromSupabase();
+        if (!freshProducts || freshProducts.length === 0) {
+          setCart(localCart);
+          return;
+        }
+
+        // Update item prices and metadata in cart
+        const syncedCart = localCart.map((item) => {
+          const fresh = freshProducts.find((p) => p.id === item.id);
+          if (fresh) {
+            return {
+              ...item,
+              name: fresh.name,
+              price: fresh.price,
+              image: fresh.image,
+              categoryName: fresh.categoryName,
+            };
+          }
+          return item;
+        });
+
+        setCart(syncedCart);
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(syncedCart));
+      } catch (e) {
+        console.error('Error syncing cart with Supabase', e);
       }
-    } catch (e) {
-      console.error('Error loading cart from localStorage', e);
     }
+
+    syncCartWithSupabase();
   }, []);
 
   const saveCart = (newCart: CartItem[]) => {
@@ -62,8 +93,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 3000);
   };
 
-  const addToCart = (productId: string, quantity = 1) => {
-    const product = getProductById(productId);
+  const addToCart = async (productId: string, quantity = 1) => {
+    const product = await getProductByIdFromSupabase(productId);
     if (!product) return;
 
     const existingIndex = cart.findIndex((item) => item.id === productId);
@@ -72,6 +103,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (existingIndex > -1) {
       newCart[existingIndex] = {
         ...newCart[existingIndex],
+        price: product.price,
+        name: product.name,
+        image: product.image,
+        categoryName: product.categoryName,
         quantity: newCart[existingIndex].quantity + quantity,
       };
     } else {

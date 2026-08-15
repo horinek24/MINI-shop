@@ -1,25 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PRODUCTS_DATA } from '@/data/products';
+import { Product } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
+import { getProductsFromSupabase, getCategoriesFromSupabase, CategoryItem } from '@/utils/supabase/services';
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([
+    { id: 'all', label: 'Tất cả' }
+  ]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const categories = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'noithat', label: 'Nội thất' },
-    { id: 'trangtri', label: 'Trang trí' },
-    { id: 'nhabep', label: 'Nhà bếp' },
-    { id: 'den', label: 'Đèn' },
-    { id: 'vanphong', label: 'Văn phòng' },
-    { id: 'luutru', label: 'Lưu trữ' },
-    { id: 'khac', label: 'Khác' },
-  ];
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      const [fetchedProducts, fetchedCategories] = await Promise.all([
+        getProductsFromSupabase(),
+        getCategoriesFromSupabase()
+      ]);
 
-  const filteredProducts = PRODUCTS_DATA.filter((product) => {
+      setProducts(fetchedProducts);
+      setCategories([
+        { id: 'all', label: 'Tất cả' },
+        ...fetchedCategories
+      ]);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
+  const filteredProducts = products.filter((product) => {
     if (selectedCategory === 'all') return true;
     return product.category === selectedCategory;
   });

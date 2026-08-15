@@ -150,8 +150,8 @@ export const Header: React.FC = () => {
                       )}
                       <button
                         className="user-dropdown-item user-dropdown-logout"
-                        onClick={() => {
-                          logout();
+                        onClick={async () => {
+                          await logout();
                           setDropdownOpen(false);
                           router.push('/');
                         }}

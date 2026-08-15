@@ -1,32 +1,58 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PRODUCTS_DATA, Product } from '@/data/products';
+import { Product } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { getProductsFromSupabase, getCategoriesFromSupabase, CategoryItem } from '@/utils/supabase/services';
 
 function ProductsCatalogContent() {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
+
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [dbCategories, setDbCategories] = useState<CategoryItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [priceFilter, setPriceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [sortOption, setSortOption] = useState<string>('newest');
 
-  const categories = [
-    { id: 'all', label: 'Tất cả sản phẩm', count: 12 },
-    { id: 'noithat', label: 'Nội thất', count: 3 },
-    { id: 'trangtri', label: 'Trang trí', count: 2 },
-    { id: 'den', label: 'Đèn', count: 2 },
-    { id: 'dothucong', label: 'Đồ thủ công', count: 3 },
-    { id: 'domynghe', label: 'Đồ mỹ nghệ', count: 1 },
-    { id: 'luutru', label: 'Lưu trữ', count: 1 },
-  ];
+  useEffect(() => {
+    async function loadCatalogData() {
+      setLoading(true);
+      const [fetchedProducts, fetchedCategories] = await Promise.all([
+        getProductsFromSupabase(),
+        getCategoriesFromSupabase()
+      ]);
+      setProductsList(fetchedProducts);
+      setDbCategories(fetchedCategories);
+      setLoading(false);
+    }
+    loadCatalogData();
+  }, []);
+
+  const categories = useMemo(() => {
+    const list: CategoryItem[] = [
+      { id: 'all', label: 'Tất cả sản phẩm', count: productsList.length }
+    ];
+
+    dbCategories.forEach(cat => {
+      const count = productsList.filter(p => p.category === cat.id).length;
+      list.push({
+        id: cat.id,
+        label: cat.label,
+        count
+      });
+    });
+
+    return list;
+  }, [productsList, dbCategories]);
 
   const filteredProducts = useMemo(() => {
-    let list = [...PRODUCTS_DATA];
+    let list = [...productsList];
 
     // Filter by Category
     if (selectedCategory !== 'all') {
@@ -58,7 +84,7 @@ function ProductsCatalogContent() {
     }
 
     return list;
-  }, [selectedCategory, priceFilter, searchQuery, sortOption]);
+  }, [productsList, selectedCategory, priceFilter, searchQuery, sortOption]);
 
   const resetAllFilters = () => {
     setSelectedCategory('all');
@@ -87,9 +113,7 @@ function ProductsCatalogContent() {
                   >
                     <span>{cat.label}</span>
                     <span className="filter-count">
-                      {cat.id === 'all'
-                        ? PRODUCTS_DATA.length
-                        : PRODUCTS_DATA.filter((p) => p.category === cat.id).length}
+                      {cat.count}
                     </span>
                   </li>
                 ))}
@@ -150,7 +174,7 @@ function ProductsCatalogContent() {
                 <label className="filter-option">
                   <input type="checkbox" checked disabled />
                   <span>Còn hàng</span>
-                  <span className="opt-count">{PRODUCTS_DATA.length}</span>
+                  <span className="opt-count">{productsList.length}</span>
                 </label>
               </div>
             </div>
@@ -164,7 +188,7 @@ function ProductsCatalogContent() {
                 <h1 className="products-page-title">Tất cả sản phẩm</h1>
                 <p className="products-count-text">
                   Hiển thị {filteredProducts.length > 0 ? 1 : 0}–{filteredProducts.length} trong{' '}
-                  {PRODUCTS_DATA.length} sản phẩm
+                  {productsList.length} sản phẩm
                 </p>
               </div>
 

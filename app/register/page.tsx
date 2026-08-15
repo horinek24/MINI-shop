@@ -14,12 +14,18 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !email.trim() || !password) {
       setErrorMsg('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('Mật khẩu phải có độ dài từ 6 ký tự trở lên.');
       return;
     }
 
@@ -28,12 +34,17 @@ export default function RegisterPage() {
       return;
     }
 
-    const success = register(name, email, password);
-    if (success) {
-      alert('Đăng ký tài khoản thành công! Đang chuyển đến trang chủ.');
+    setSubmitting(true);
+    setErrorMsg('');
+
+    const res = await register(name, email, password);
+    setSubmitting(false);
+
+    if (res.success) {
+      alert('Đăng ký tài khoản thành công! Bạn sẽ chuyển đến trang chủ.');
       router.push('/');
     } else {
-      setErrorMsg('Đăng ký thất bại. Vui lòng thử lại.');
+      setErrorMsg(res.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     }
   };
 
@@ -101,7 +112,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label">Mật khẩu *</label>
+              <label className="form-label">Mật khẩu * (Tối thiểu 6 ký tự)</label>
               <input
                 type="password"
                 className="form-input"
@@ -124,8 +135,13 @@ export default function RegisterPage() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full" style={{ width: '100%', padding: '0.8rem' }}>
-              Đăng ký tài khoản
+            <button
+              type="submit"
+              className="btn btn-primary btn-full"
+              style={{ width: '100%', padding: '0.8rem' }}
+              disabled={submitting}
+            >
+              {submitting ? 'Đang tạo tài khoản...' : 'Đăng ký tài khoản'}
             </button>
           </form>
         </div>

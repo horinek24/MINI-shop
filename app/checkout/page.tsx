@@ -28,7 +28,7 @@ export default function CheckoutPage() {
   const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
   const finalTotal = Math.max(0, subtotal + shippingFee - appliedCouponDiscount);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: Record<string, boolean> = {};
@@ -44,6 +44,52 @@ export default function CheckoutPage() {
     }
 
     const orderCode = 'MS' + Math.floor(100000 + Math.random() * 900000);
+
+    const provinceLabels: Record<string, string> = {
+      hanoi: 'Hà Nội',
+      hcm: 'TP. Hồ Chí Minh',
+      danang: 'Đà Nẵng',
+      haiphong: 'Hải Phòng',
+      cantho: 'Cần Thơ',
+      other: 'Tỉnh / Thành khác',
+    };
+    const fullAddressStr = `${address.trim()}, ${district.trim()}, ${provinceLabels[province] || province}`;
+
+    const orderItems = cart.map((item) => ({
+      product_id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+      total: item.price * item.quantity,
+    }));
+
+    // Save order to Supabase orders table
+    try {
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      const { error } = await supabase.from('orders').insert({
+        order_code: orderCode,
+        customer_name: fullName.trim(),
+        customer_phone: phone.trim(),
+        customer_email: email.trim() || null,
+        customer_address: fullAddressStr,
+        notes: notes.trim() || null,
+        total_amount: finalTotal,
+        items: orderItems,
+        payment_method: paymentMethod,
+        status: 'pending',
+      });
+
+      if (error) {
+        console.error('Lỗi khi ghi đơn hàng vào Supabase:', error.message);
+      } else {
+        console.log('Đã lưu thành công đơn hàng vào kho Supabase!');
+      }
+    } catch (err) {
+      console.error('Error saving order to Supabase:', err);
+    }
+
     setCreatedOrderCode(orderCode);
     setIsSuccess(true);
     clearCart();

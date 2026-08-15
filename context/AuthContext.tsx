@@ -1,78 +1,151 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
+  id: string;
   email: string;
   name: string;
   role: 'user' | 'admin';
 }
 
+export interface AuthResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
-  login: (email: string, pass: string) => boolean;
-  register: (name: string, email: string, pass: string) => boolean;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, pass: string) => Promise<AuthResult>;
+  register: (name: string, email: string, pass: string) => Promise<AuthResult>;
+  logout: () => Promise<void>;
   isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_STORAGE_KEY = 'mini_shop_user';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const mapUser = (sbUser: SupabaseUser): User => {
+    const fullName =
+      sbUser.user_metadata?.full_name ||
+      sbUser.user_metadata?.name ||
+      sbUser.email?.split('@')[0] ||
+      'Khách hàng';
+    const role =
+      sbUser.email?.toLowerCase() === 'admin@minishop.vn' ||
+      sbUser.app_metadata?.role === 'admin' ||
+      sbUser.user_metadata?.role === 'admin'
+        ? 'admin'
+        : 'user';
+
+    return {
+      id: sbUser.id,
+      email: sbUser.email || '',
+      name: fullName,
+      role: role,
+    };
+  };
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(USER_STORAGE_KEY);
-      if (raw) {
-        setUser(JSON.parse(raw));
+    const supabase = createClient();
+
+    // Check initial active session from Supabase Auth
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapUser(session.user));
+      } else {
+        setUser(null);
       }
-    } catch (e) {
-      console.error('Error loading user from localStorage', e);
-    }
+      setLoading(false);
+    });
+
+    // Listen for real-time auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(mapUser(session.user));
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = (email: string, pass: string): boolean => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail === 'admin@minishop.vn' && pass === 'admin123') {
-      const adminUser: User = { name: 'Admin Shop', email: cleanEmail, role: 'admin' };
-      setUser(adminUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(adminUser));
-      return true;
-    } else if (cleanEmail && pass) {
-      const regularUser: User = {
-        name: cleanEmail.split('@')[0] || 'Khách hàng',
-        email: cleanEmail,
-        role: 'user',
-      };
-      setUser(regularUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(regularUser));
-      return true;
+  const login = async (email: string, pass: string): Promise<AuthResult> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: pass,
+    });
+
+    if (error) {
+      let friendlyMsg = error.message;
+      if (error.message.includes('Invalid login credentials')) {
+        friendlyMsg = 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.';
+      } else if (error.message.includes('Email not confirmed')) {
+        friendlyMsg = 'Email chưa được xác nhận trong hệ thống.';
+      }
+      return { success: false, message: friendlyMsg };
     }
-    return false;
+
+    if (data.user) {
+      setUser(mapUser(data.user));
+    }
+
+    return { success: true };
   };
 
-  const register = (name: string, email: string, pass: string): boolean => {
-    if (name && email && pass) {
-      const newUser: User = { name, email, role: 'user' };
-      setUser(newUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
-      return true;
+  const register = async (name: string, email: string, pass: string): Promise<AuthResult> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: pass,
+      options: {
+        data: {
+          full_name: name.trim(),
+        },
+      },
+    });
+
+    if (error) {
+      let friendlyMsg = error.message;
+      if (error.message.includes('User already registered')) {
+        friendlyMsg = 'Email này đã được đăng ký trước đó. Vui lòng dùng email khác hoặc Đăng nhập.';
+      } else if (error.message.includes('Password should be at least')) {
+        friendlyMsg = 'Mật khẩu phải có ít nhất 6 ký tự.';
+      }
+      return { success: false, message: friendlyMsg };
     }
-    return false;
+
+    if (data.user) {
+      setUser(mapUser(data.user));
+    }
+
+    return { success: true };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         register,
         logout,

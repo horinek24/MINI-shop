@@ -1,34 +1,76 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { PRODUCTS_DATA, Product, formatVND } from '@/data/products';
+import { Product, formatVND } from '@/data/products';
 import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+import { getProductsFromSupabase, getCategoriesFromSupabase, CategoryItem } from '@/utils/supabase/services';
 
 interface OrderItem {
   id: string;
+  rawId: string;
   customer: string;
   phone: string;
   date: string;
   total: number;
   payment: string;
-  status: 'new' | 'processing' | 'completed' | 'cancelled';
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
 }
+
+const SAMPLE_IMAGES = [
+  { label: 'Bình gốm trang trí', url: '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp' },
+  { label: 'Sofa phòng khách', url: '/MiniShop_Assets/assets/images/products/noi-that-gia-dung/sofa-phong-khach.webp' },
+  { label: 'Bộ bàn ăn gỗ', url: '/MiniShop_Assets/assets/images/products/noi-that-gia-dung/bo-ban-an-go.webp' },
+  { label: 'Đèn tre thủ công', url: '/MiniShop_Assets/assets/images/products/do-my-nghe/den-tre-thu-cong.webp' },
+  { label: 'Giỏ mây đan', url: '/MiniShop_Assets/assets/images/products/do-thu-cong/gio-may-dan.webp' },
+];
 
 export default function AdminPage() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, loading, isAdmin, logout } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders'>('dashboard');
   const [productsList, setProductsList] = useState<Product[]>([]);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
   const [ordersList, setOrdersList] = useState<OrderItem[]>([]);
   const [orderFilter, setOrderFilter] = useState<string>('all');
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Dung lượng tệp ảnh quá lớn. Vui lòng chọn tệp nhỏ hơn 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const result = uploadEvent.target?.result as string;
+        if (result) {
+          setFormImage(result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Protection Guard: Redirect non-admin users or unauthenticated visitors to /login
+  useEffect(() => {
+    if (!loading) {
+      if (!user || !isAdmin) {
+        router.push('/login');
+      }
+    }
+  }, [user, loading, isAdmin, router]);
 
   // Form State for Product Add / Edit
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState<string>('');
-  const [formCategory, setFormCategory] = useState<string>('noi-that-gia-dung');
+  const [formCategory, setFormCategory] = useState<string>('noithat');
   const [formPrice, setFormPrice] = useState<number>(100000);
   const [formImage, setFormImage] = useState<string>(
     '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
@@ -36,61 +78,56 @@ export default function AdminPage() {
   const [formStatus, setFormStatus] = useState<'active' | 'inactive'>('active');
   const [formDesc, setFormDesc] = useState<string>('');
 
+  const loadAdminData = async () => {
+    setIsDataLoading(true);
+    try {
+      const [prods, cats] = await Promise.all([
+        getProductsFromSupabase(),
+        getCategoriesFromSupabase(),
+      ]);
+      setProductsList(prods);
+      setCategoriesList(cats);
+      if (cats.length > 0 && !formCategory) {
+        setFormCategory(cats[0].id);
+      }
+
+      // Load real orders from Supabase
+      const supabase = createClient();
+      const { data: dbOrders } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (dbOrders) {
+        const mappedOrders: OrderItem[] = dbOrders.map((o: any) => ({
+          id: o.order_code || (o.id ? o.id.slice(0, 8).toUpperCase() : 'MS000'),
+          rawId: o.id,
+          customer: o.customer_name || 'Khách hàng',
+          phone: o.customer_phone || '---',
+          date: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : 'Vừa xong',
+          total: Number(o.total_amount || 0),
+          payment: o.payment_method === 'cod' ? 'Thanh toán COD' : o.payment_method === 'bank' ? 'Chuyển khoản' : 'Ví MoMo',
+          status: o.status || 'pending',
+        }));
+        setOrdersList(mappedOrders);
+      }
+    } catch (e) {
+      console.error('Lỗi khi tải dữ liệu trang quản trị từ Supabase:', e);
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setProductsList(JSON.parse(JSON.stringify(PRODUCTS_DATA)));
-    setOrdersList([
-      {
-        id: 'MS948102',
-        customer: 'Nguyễn Văn An',
-        phone: '0912 345 678',
-        date: '14/08/2026 15:30',
-        total: 1680000,
-        payment: 'COD',
-        status: 'new',
-      },
-      {
-        id: 'MS948101',
-        customer: 'Trần Thị Mai',
-        phone: '0988 123 456',
-        date: '14/08/2026 11:20',
-        total: 2990000,
-        payment: 'Ví MoMo',
-        status: 'processing',
-      },
-      {
-        id: 'MS948099',
-        customer: 'Lê Hoàng Nam',
-        phone: '0905 678 910',
-        date: '13/08/2026 18:45',
-        total: 450000,
-        payment: 'Chuyển khoản',
-        status: 'completed',
-      },
-      {
-        id: 'MS948095',
-        customer: 'Phạm Minh Đức',
-        phone: '0934 567 890',
-        date: '12/08/2026 09:15',
-        total: 820000,
-        payment: 'COD',
-        status: 'completed',
-      },
-      {
-        id: 'MS948090',
-        customer: 'Vũ Thị Hồng',
-        phone: '0977 222 333',
-        date: '11/08/2026 14:10',
-        total: 1250000,
-        payment: 'COD',
-        status: 'cancelled',
-      },
-    ]);
-  }, []);
+    if (user && isAdmin) {
+      loadAdminData();
+    }
+  }, [user, isAdmin]);
 
   const resetForm = () => {
     setEditingId(null);
     setFormName('');
-    setFormCategory('noi-that-gia-dung');
+    setFormCategory(categoriesList[0]?.id || 'noithat');
     setFormPrice(100000);
     setFormImage('/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp');
     setFormStatus('active');
@@ -101,82 +138,126 @@ export default function AdminPage() {
     setActiveTab('products');
     setEditingId(prod.id);
     setFormName(prod.name);
-    setFormCategory(prod.category || 'noi-that-gia-dung');
+    setFormCategory(prod.category || categoriesList[0]?.id || 'noithat');
     setFormPrice(prod.price);
     setFormImage(prod.image);
     setFormStatus(prod.status || 'active');
     setFormDesc(prod.desc || '');
   };
 
-  const handleDeleteProduct = (productId: string) => {
+  const handleDeleteProduct = async (productId: string) => {
     const prod = productsList.find((p) => p.id === productId);
-    if (prod && confirm(`Bạn có chắc muốn xóa sản phẩm "${prod.name}"?`)) {
-      setProductsList(productsList.filter((p) => p.id !== productId));
+    if (prod && confirm(`Bạn có chắc muốn xóa vĩnh viễn sản phẩm "${prod.name}" khỏi Supabase?`)) {
+      const supabase = createClient();
+      const { error } = await supabase.from('products').delete().eq('id', productId);
+
+      if (error) {
+        alert(`Lỗi khi xóa sản phẩm: ${error.message}`);
+      } else {
+        alert(`Đã xóa sản phẩm "${prod.name}" thành công!`);
+        await loadAdminData();
+      }
     }
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || formPrice <= 0) {
-      alert('Vui lòng nhập tên sản phẩm và giá hợp lệ.');
+      alert('Vui lòng nhập tên sản phẩm và giá bán hợp lệ.');
       return;
     }
 
-    const categoryMap: Record<string, string> = {
-      'noi-that-gia-dung': 'Nội thất & Gia dụng',
-      'do-my-nghe': 'Đồ mỹ nghệ',
-      'do-thu-cong': 'Đồ thủ công',
-      'luu-tru': 'Lưu trữ & Sắp xếp',
-    };
+    setSaving(true);
+    const supabase = createClient();
+
+    // Find category label
+    const selectedCatObj = categoriesList.find((c) => c.id === formCategory);
+    const categoryName = selectedCatObj ? selectedCatObj.label : 'Khác';
+    const finalImage = formImage.trim() || '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp';
 
     if (editingId) {
-      // Edit
-      setProductsList(
-        productsList.map((p) =>
-          p.id === editingId
-            ? {
-                ...p,
-                name: formName,
-                category: formCategory,
-                categoryName: categoryMap[formCategory] || formCategory,
-                price: formPrice,
-                image: formImage,
-                status: formStatus,
-                desc: formDesc,
-              }
-            : p
-        )
-      );
-      alert('Đã cập nhật sản phẩm thành công!');
+      // Update in Supabase
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: formName.trim(),
+          category_id: formCategory,
+          category_name: categoryName,
+          price: formPrice,
+          image: finalImage,
+          status: formStatus,
+          desc: formDesc.trim(),
+        })
+        .eq('id', editingId);
+
+      if (error) {
+        alert(`Lỗi khi cập nhật sản phẩm: ${error.message}`);
+      } else {
+        alert('Đã cập nhật sản phẩm trên Supabase thành công!');
+        resetForm();
+        await loadAdminData();
+      }
     } else {
-      // Add
-      const newProd: Product = {
-        id: 'prod-' + Date.now(),
-        name: formName,
-        category: formCategory,
-        categoryName: categoryMap[formCategory] || formCategory,
+      // Generate ID slug
+      const slugId =
+        formName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || `prod-${Date.now()}`;
+
+      const { error } = await supabase.from('products').insert({
+        id: slugId,
+        name: formName.trim(),
+        category_id: formCategory,
+        category_name: categoryName,
         price: formPrice,
-        image: formImage,
+        image: finalImage,
+        thumbnails: JSON.stringify([finalImage]),
         status: formStatus,
-        desc: formDesc || 'Sản phẩm thủ công cao cấp.',
+        desc: formDesc.trim() || 'Sản phẩm decor thủ công cao cấp.',
         stock: 'Còn hàng',
-      };
-      setProductsList([newProd, ...productsList]);
-      alert('Đã thêm sản phẩm mới thành công!');
+      });
+
+      if (error) {
+        alert(`Lỗi khi thêm sản phẩm mới: ${error.message}`);
+      } else {
+        alert('Đã thêm sản phẩm mới vào Supabase thành công!');
+        resetForm();
+        await loadAdminData();
+      }
     }
-    resetForm();
+    setSaving(false);
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: any) => {
-    setOrdersList(
-      ordersList.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
+  const handleUpdateOrderStatus = async (rawId: string, newStatus: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', rawId);
+    if (!error) {
+      setOrdersList(
+        ordersList.map((o) => (o.rawId === rawId ? { ...o, status: newStatus as any } : o))
+      );
+    }
   };
 
   const filteredOrders =
     orderFilter === 'all'
       ? ordersList
       : ordersList.filter((o) => o.status === orderFilter);
+
+  if (loading || isDataLoading) {
+    return (
+      <div className="container" style={{ padding: '5rem 0', textAlign: 'center' }}>
+        <h3>Đang kiểm tra quyền và tải dữ liệu từ Supabase...</h3>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return null;
+  }
 
   return (
     <div className="admin-layout">
@@ -194,167 +275,131 @@ export default function AdminPage() {
           </Link>
         </div>
 
-        <nav className="admin-nav">
+        <nav className="admin-nav-menu">
           <button
-            className={`admin-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            className={`admin-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveTab('dashboard')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
             </svg>
-            Dashboard
+            Overview
           </button>
-
           <button
-            className={`admin-nav-item ${activeTab === 'products' ? 'active' : ''}`}
+            className={`admin-nav-btn ${activeTab === 'products' ? 'active' : ''}`}
             onClick={() => setActiveTab('products')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
-            Products
+            Products ({productsList.length})
           </button>
-
           <button
-            className={`admin-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+            className={`admin-nav-btn ${activeTab === 'orders' ? 'active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <path d="M16 10a4 4 0 0 1-8 0" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
-            Orders
-            <span className="nav-badge" id="admin-orders-badge">
-              {ordersList.length}
-            </span>
+            Orders ({ordersList.length})
           </button>
         </nav>
 
-        <div className="sidebar-summary-card">
-          <h4 className="summary-card-title">Quick Summary</h4>
-          <div className="summary-card-row">
-            <span>Sản phẩm</span>
-            <strong>{productsList.length}</strong>
-          </div>
-          <div className="summary-card-row">
-            <span>Danh mục</span>
-            <strong>4</strong>
-          </div>
-          <div className="summary-card-row">
-            <span>Đơn hàng</span>
-            <strong>{ordersList.length}</strong>
-          </div>
-        </div>
-
-        <div className="sidebar-logout">
+        <div className="admin-sidebar-footer">
           <button
-            className="btn-sidebar-logout"
-            onClick={() => {
-              if (confirm('Bạn có chắc muốn đăng xuất?')) {
-                logout();
-                router.push('/');
-              }
+            className="admin-logout-btn"
+            onClick={async () => {
+              await logout();
+              router.push('/');
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            Logout
+            Log out
           </button>
         </div>
       </aside>
 
-      {/* RIGHT MAIN CONTENT */}
-      <div className="admin-content-wrapper">
-        <header className="admin-topbar">
-          <div className="topbar-left">
-            <h1 className="topbar-title">
-              {activeTab === 'dashboard'
-                ? 'Dashboard'
-                : activeTab === 'products'
-                ? 'Product Management'
-                : 'Order Management'}
-            </h1>
+      {/* MAIN CONTENT REGION */}
+      <main className="admin-main">
+        <header className="admin-header-bar">
+          <div className="admin-header-title">
+            <h2>
+              {activeTab === 'dashboard' && 'Dashboard Overview'}
+              {activeTab === 'products' && 'Product Management'}
+              {activeTab === 'orders' && 'Order Management'}
+            </h2>
+            <p>Quản lý sản phẩm, đơn hàng và kho dữ liệu Supabase thời gian thực.</p>
           </div>
-          <div className="topbar-right">
-            <div className="admin-user-profile">
-              <div className="user-avatar">A</div>
-              <span className="user-name">Admin</span>
-            </div>
+
+          <div className="admin-header-user">
+            <span className="user-badge-admin">Admin: {user.name}</span>
+            <Link href="/" className="btn btn-outline-gray btn-sm">
+              Xem trang bán hàng
+            </Link>
           </div>
         </header>
 
-        <main className="admin-main-container">
-          {/* TAB 1: DASHBOARD */}
+        <div className="admin-content-inner">
+          {/* TAB 1: OVERVIEW DASHBOARD */}
           {activeTab === 'dashboard' && (
             <section className="admin-tab-view active">
-              <div className="stat-cards-grid">
-                <div className="stat-card">
-                  <div className="stat-card-info">
-                    <span className="stat-label">Total products</span>
-                    <h3 className="stat-value">{productsList.length}</h3>
-                    <span className="stat-sub">All products in store</span>
+              {/* Stat Metric Cards */}
+              <div className="admin-stats-grid">
+                <div className="admin-stat-card">
+                  <div className="stat-icon bg-green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                      <line x1="12" y1="1" x2="12" y2="23" />
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
                   </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-card-info">
-                    <span className="stat-label">Categories</span>
-                    <h3 className="stat-value">4</h3>
-                    <span className="stat-sub">Product categories</span>
-                  </div>
-                </div>
-
-                <div className="stat-card">
-                  <div className="stat-card-info">
-                    <span className="stat-label">Visible products</span>
-                    <h3 className="stat-value">
-                      {productsList.filter((p) => p.status !== 'inactive').length}
+                  <div className="stat-info">
+                    <span className="stat-label">Tổng doanh thu</span>
+                    <h3 className="stat-val">
+                      {formatVND(ordersList.reduce((sum, o) => sum + o.total, 0))}
                     </h3>
-                    <span className="stat-sub">Currently visible</span>
                   </div>
                 </div>
 
-                <div className="stat-card">
-                  <div className="stat-card-info">
-                    <span className="stat-label">Low stock</span>
-                    <h3 className="stat-value">
-                      {productsList.filter((p) => p.price > 1000000).length}
-                    </h3>
-                    <span className="stat-sub">Products low on stock</span>
+                <div className="admin-stat-card">
+                  <div className="stat-icon bg-blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-label">Tổng sản phẩm trong kho</span>
+                    <h3 className="stat-val">{productsList.length} món</h3>
+                  </div>
+                </div>
+
+                <div className="admin-stat-card">
+                  <div className="stat-icon bg-purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                      <circle cx="9" cy="21" r="1" />
+                      <circle cx="20" cy="21" r="1" />
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-label">Tổng đơn hàng</span>
+                    <h3 className="stat-val">{ordersList.length} đơn</h3>
                   </div>
                 </div>
               </div>
 
-              {/* Middle Row: Sales Overview & Recent Products */}
-              <div className="dashboard-middle-grid">
+              {/* Quick Products Overview */}
+              <div className="admin-grid-2col" style={{ marginTop: '2rem' }}>
                 <div className="admin-card">
                   <div className="card-header-row">
-                    <h3 className="card-title">Sales overview</h3>
-                  </div>
-                  <div className="chart-container">
-                    <svg viewBox="0 0 600 220" className="sales-chart-svg">
-                      <line x1="40" y1="30" x2="570" y2="30" stroke="#f1f5f9" strokeDasharray="4" />
-                      <line x1="40" y1="80" x2="570" y2="80" stroke="#f1f5f9" strokeDasharray="4" />
-                      <line x1="40" y1="130" x2="570" y2="130" stroke="#f1f5f9" strokeDasharray="4" />
-                      <line x1="40" y1="180" x2="570" y2="180" stroke="#e2e8f0" />
-                      <path d="M 60 140 Q 140 100 220 120 T 380 90 T 540 50" fill="none" stroke="#2563eb" strokeWidth="3" />
-                      <circle cx="300" cy="80" r="6" fill="#2563eb" stroke="#ffffff" strokeWidth="3" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div className="admin-card">
-                  <div className="card-header-row">
-                    <h3 className="card-title">Recent products</h3>
+                    <h3 className="card-title">Sản phẩm mới nhất</h3>
                     <button
                       className="btn btn-blue btn-sm"
                       onClick={() => {
@@ -369,15 +414,30 @@ export default function AdminPage() {
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th>Product</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th style={{ textAlign: 'right' }}>Action</th>
+                          <th style={{ width: '60px' }}>Hình ảnh</th>
+                          <th>Sản phẩm</th>
+                          <th>Giá bán</th>
+                          <th>Trạng thái</th>
+                          <th style={{ textAlign: 'right' }}>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         {productsList.slice(0, 5).map((p) => (
                           <tr key={p.id}>
+                            <td>
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                className="table-thumb"
+                                style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).setAttribute(
+                                    'src',
+                                    '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
+                                  );
+                                }}
+                              />
+                            </td>
                             <td>
                               <strong>{p.name}</strong>
                             </td>
@@ -412,7 +472,7 @@ export default function AdminPage() {
                 <div className="management-main-col">
                   <div className="admin-card">
                     <div className="card-header-row">
-                      <h3 className="card-title">Products</h3>
+                      <h3 className="card-title">Products ({productsList.length})</h3>
                       <button className="btn btn-blue btn-sm" onClick={resetForm}>
                         + Add Product
                       </button>
@@ -436,7 +496,17 @@ export default function AdminPage() {
                             <tr key={p.id}>
                               <td>{idx + 1}</td>
                               <td>
-                                <img src={p.image} alt={p.name} className="table-thumb" />
+                                <img
+                                  src={p.image}
+                                  alt={p.name}
+                                  className="table-thumb"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).setAttribute(
+                                      'src',
+                                      '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
+                                    );
+                                  }}
+                                />
                               </td>
                               <td>
                                 <strong>{p.name}</strong>
@@ -487,10 +557,11 @@ export default function AdminPage() {
 
                     <form onSubmit={handleSaveProduct}>
                       <div className="form-group">
-                        <label className="form-label">Product name *</label>
+                        <label className="form-label">Tên sản phẩm *</label>
                         <input
                           type="text"
                           className="form-input"
+                          placeholder="Ví dụ: Đèn thả trần Bát Tràng"
                           value={formName}
                           onChange={(e) => setFormName(e.target.value)}
                           required
@@ -498,24 +569,26 @@ export default function AdminPage() {
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Category *</label>
+                        <label className="form-label">Danh mục *</label>
                         <select
                           className="form-input form-select"
                           value={formCategory}
                           onChange={(e) => setFormCategory(e.target.value)}
                         >
-                          <option value="noi-that-gia-dung">Nội thất & Gia dụng</option>
-                          <option value="do-my-nghe">Đồ mỹ nghệ</option>
-                          <option value="do-thu-cong">Đồ thủ công</option>
-                          <option value="luu-tru">Lưu trữ & Sắp xếp</option>
+                          {categoriesList.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Price (VND) *</label>
+                        <label className="form-label">Giá bán (VNĐ) *</label>
                         <input
                           type="number"
                           className="form-input"
+                          placeholder="500000"
                           value={formPrice}
                           onChange={(e) => setFormPrice(parseInt(e.target.value, 10) || 0)}
                           required
@@ -523,72 +596,167 @@ export default function AdminPage() {
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Sample Image</label>
-                        <select
-                          className="form-input form-select"
-                          value={formImage}
-                          onChange={(e) => setFormImage(e.target.value)}
-                        >
-                          <option value="/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp">
-                            Bình gốm trang trí
-                          </option>
-                          <option value="/MiniShop_Assets/assets/images/products/noi-that-gia-dung/sofa-phong-khach.webp">
-                            Sofa phòng khách
-                          </option>
-                          <option value="/MiniShop_Assets/assets/images/products/noi-that-gia-dung/bo-ban-an-go.webp">
-                            Bộ bàn ăn gỗ
-                          </option>
-                          <option value="/MiniShop_Assets/assets/images/products/do-my-nghe/den-tre-thu-cong.webp">
-                            Đèn tre thủ công
-                          </option>
-                          <option value="/MiniShop_Assets/assets/images/products/do-thu-cong/gio-may-dan.webp">
-                            Giỏ mây đan
-                          </option>
-                        </select>
-                        <img
-                          src={formImage}
-                          alt="Preview"
-                          style={{
-                            width: '100%',
-                            height: '120px',
-                            objectFit: 'cover',
-                            marginTop: '0.5rem',
-                            borderRadius: 'var(--radius-sm)',
-                          }}
+                        <label className="form-label" style={{ fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>
+                          Hình ảnh sản phẩm *
+                        </label>
+                        
+                        {/* Hidden File Input */}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          hidden
+                          accept="image/*"
+                          onChange={handleFileUpload}
                         />
+
+                        {/* File Upload Button */}
+                        <button
+                          type="button"
+                          className="btn btn-blue btn-full"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.65rem 1rem',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            borderRadius: 'var(--radius-md)',
+                            marginBottom: '0.75rem',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                          📷 Bấm vào đây để chọn ảnh từ máy tính
+                        </button>
+
+                        {/* Visual Image Gallery / Quick Picker */}
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block', marginBottom: '0.4rem' }}>
+                            Hoặc bấm chọn nhanh hình ảnh mẫu có sẵn:
+                          </span>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
+                            {SAMPLE_IMAGES.map((sample) => {
+                              const isSelected = formImage === sample.url;
+                              return (
+                                <div
+                                  key={sample.url}
+                                  title={sample.label}
+                                  onClick={() => setFormImage(sample.url)}
+                                  style={{
+                                    border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                                    borderRadius: '6px',
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    backgroundColor: isSelected ? '#ecfdf5' : '#fff',
+                                    transition: 'all 0.2s ease',
+                                  }}
+                                >
+                                  <img
+                                    src={sample.url}
+                                    alt={sample.label}
+                                    style={{
+                                      width: '100%',
+                                      height: '42px',
+                                      objectFit: 'cover',
+                                      borderRadius: '4px',
+                                      display: 'block',
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Toggle URL input */}
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                            Hoặc dán/nhập link URL ảnh trực tiếp:
+                          </span>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ marginTop: '0.2rem', fontSize: '0.8rem' }}
+                            placeholder="https://... hoặc /MiniShop_Assets/..."
+                            value={formImage}
+                            onChange={(e) => setFormImage(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Live Image Preview */}
+                        {formImage && (
+                          <div style={{ marginTop: '0.75rem', textAlign: 'center', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 600, display: 'block', textAlign: 'left', marginBottom: '0.4rem', color: 'var(--color-dark)' }}>
+                              ✓ Hình ảnh đang chọn:
+                            </span>
+                            <img
+                              src={formImage}
+                              alt="Preview"
+                              className="admin-preview-img"
+                              style={{
+                                width: '140px',
+                                height: '140px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                border: '1px solid var(--color-border)',
+                                margin: '0 auto',
+                                display: 'block',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLElement).setAttribute(
+                                  'src',
+                                  '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp'
+                                );
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Status</label>
+                        <label className="form-label">Trạng thái</label>
                         <select
                           className="form-input form-select"
                           value={formStatus}
                           onChange={(e) => setFormStatus(e.target.value as any)}
                         >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
+                          <option value="active">Active (Đang bán)</option>
+                          <option value="inactive">Inactive (Ẩn)</option>
                         </select>
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label">Description</label>
+                        <label className="form-label">Mô tả sản phẩm</label>
                         <textarea
                           className="form-input form-textarea"
+                          placeholder="Mô tả chi tiết chất liệu, xuất xứ, tính năng sản phẩm..."
                           value={formDesc}
                           onChange={(e) => setFormDesc(e.target.value)}
                         />
                       </div>
 
                       <div className="form-buttons-row">
-                        <button type="submit" className="btn btn-green btn-full">
-                          Save
+                        <button
+                          type="submit"
+                          className="btn btn-green btn-full"
+                          disabled={saving}
+                        >
+                          {saving ? 'Đang lưu vào Supabase...' : editingId ? 'Cập nhật Supabase' : 'Thêm vào Supabase'}
                         </button>
                         <button
                           type="button"
                           className="btn btn-outline-gray btn-full"
                           onClick={resetForm}
                         >
-                          Cancel
+                          Hủy / Đặt lại
                         </button>
                       </div>
                     </form>
@@ -603,17 +771,17 @@ export default function AdminPage() {
             <section className="admin-tab-view active">
               <div className="admin-card">
                 <div className="card-header-row">
-                  <h3 className="card-title">Order Management</h3>
+                  <h3 className="card-title">Order Management ({filteredOrders.length})</h3>
                   <select
                     className="admin-select-sm"
                     value={orderFilter}
                     onChange={(e) => setOrderFilter(e.target.value)}
                   >
                     <option value="all">Tất cả trạng thái</option>
-                    <option value="new">Mới</option>
-                    <option value="processing">Đang xử lý</option>
-                    <option value="completed">Hoàn thành</option>
-                    <option value="cancelled">Đã hủy</option>
+                    <option value="pending">Chờ xử lý (Pending)</option>
+                    <option value="processing">Đang xử lý (Processing)</option>
+                    <option value="completed">Hoàn thành (Completed)</option>
+                    <option value="cancelled">Đã hủy (Cancelled)</option>
                   </select>
                 </div>
 
@@ -632,68 +800,53 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredOrders.map((o) => (
-                        <tr key={o.id}>
-                          <td>
-                            <strong>#{o.id}</strong>
-                          </td>
-                          <td>{o.customer}</td>
-                          <td>{o.phone}</td>
-                          <td>{o.date}</td>
-                          <td>
-                            <strong style={{ color: 'var(--color-primary)' }}>
-                              {formatVND(o.total)}
-                            </strong>
-                          </td>
-                          <td>
-                            <span className="badge-payment">{o.payment}</span>
-                          </td>
-                          <td>
-                            <span
-                              className={`badge-status ${
-                                o.status === 'completed'
-                                  ? 'active'
-                                  : o.status === 'processing'
-                                  ? 'info'
-                                  : o.status === 'new'
-                                  ? 'warning'
-                                  : 'inactive'
-                              }`}
-                            >
-                              •{' '}
-                              {o.status === 'completed'
-                                ? 'Hoàn thành'
-                                : o.status === 'processing'
-                                ? 'Đang xử lý'
-                                : o.status === 'new'
-                                ? 'Đơn mới'
-                                : 'Đã hủy'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <select
-                              className="admin-select-sm"
-                              value={o.status}
-                              onChange={(e) =>
-                                handleUpdateOrderStatus(o.id, e.target.value)
-                              }
-                            >
-                              <option value="new">Mới</option>
-                              <option value="processing">Đang xử lý</option>
-                              <option value="completed">Hoàn thành</option>
-                              <option value="cancelled">Đã hủy</option>
-                            </select>
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
+                            Chưa có đơn hàng nào trong hệ thống.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredOrders.map((o) => (
+                          <tr key={o.rawId}>
+                            <td>
+                              <strong>#{o.id}</strong>
+                            </td>
+                            <td>{o.customer}</td>
+                            <td>{o.phone}</td>
+                            <td>{o.date}</td>
+                            <td>
+                              <strong>{formatVND(o.total)}</strong>
+                            </td>
+                            <td>{o.payment}</td>
+                            <td>
+                              <span className={`badge-status ${o.status === 'completed' ? 'active' : o.status === 'cancelled' ? 'inactive' : 'new'}`}>
+                                • {o.status}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <select
+                                className="admin-select-sm"
+                                value={o.status}
+                                onChange={(e) => handleUpdateOrderStatus(o.rawId, e.target.value)}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             </section>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

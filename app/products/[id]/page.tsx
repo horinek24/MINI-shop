@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getProductById, getRelatedProducts, formatVND } from '@/data/products';
+import { Product, formatVND } from '@/data/products';
+import { getProductByIdFromSupabase, getProductsFromSupabase } from '@/utils/supabase/services';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ProductCard } from '@/components/ProductCard';
@@ -12,17 +13,49 @@ import { Breadcrumb } from '@/components/Breadcrumb';
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = (params.id as string) || 'sofa-nordic';
-  const product = getProductById(productId) || getProductById('sofa-nordic')!;
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [selectedImg, setSelectedImg] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
-  const [selectedImg, setSelectedImg] = useState<string>(product.image);
-  const [quantity, setQuantity] = useState<number>(1);
+  useEffect(() => {
+    async function loadDetail() {
+      setLoading(true);
+      const fetchedProduct = await getProductByIdFromSupabase(productId);
+      const allProducts = await getProductsFromSupabase();
+
+      if (fetchedProduct) {
+        setProduct(fetchedProduct);
+        setSelectedImg(fetchedProduct.image);
+        const related = allProducts
+          .filter((p) => p.id !== fetchedProduct.id && (p.category === fetchedProduct.category || p.category !== fetchedProduct.category))
+          .slice(0, 5);
+        setRelatedProducts(related);
+      } else if (allProducts.length > 0) {
+        const fallbackProduct = allProducts[0];
+        setProduct(fallbackProduct);
+        setSelectedImg(fallbackProduct.image);
+      }
+      setLoading(false);
+    }
+    loadDetail();
+  }, [productId]);
+
+  if (loading || !product) {
+    return (
+      <div className="container" style={{ padding: '5rem 0', textAlign: 'center' }}>
+        <h3>Đang tải thông tin sản phẩm từ Supabase...</h3>
+      </div>
+    );
+  }
 
   const liked = isInWishlist(product.id);
   const thumbnails = product.thumbnails && product.thumbnails.length > 0 ? product.thumbnails : [product.image];
-  const relatedProducts = getRelatedProducts(product.id, product.category, 5);
 
   return (
     <>

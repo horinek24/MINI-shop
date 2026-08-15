@@ -9,34 +9,34 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('user@minishop.vn');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
       setErrorMsg('Vui lòng nhập đầy đủ email và mật khẩu.');
       return;
     }
 
-    const success = login(email, password);
-    if (success) {
+    setSubmitting(true);
+    setErrorMsg('');
+
+    const res = await login(email, password);
+    setSubmitting(false);
+
+    if (res.success) {
       if (email.trim().toLowerCase() === 'admin@minishop.vn') {
         router.push('/admin');
       } else {
         router.push('/');
       }
     } else {
-      setErrorMsg('Tài khoản hoặc mật khẩu không chính xác.');
+      setErrorMsg(res.message || 'Tài khoản hoặc mật khẩu không chính xác.');
     }
-  };
-
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMsg('');
   };
 
   return (
@@ -70,30 +70,6 @@ export default function LoginPage() {
               Đăng ký ngay
             </Link>
           </p>
-
-          {/* Demo hint box */}
-          <div className="auth-demo-hint" style={{ background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-light)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
-            <div>
-              <strong>Tài khoản Khách hàng:</strong>{' '}
-              <button
-                type="button"
-                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' }}
-                onClick={() => fillDemoAccount('user@minishop.vn', '123456')}
-              >
-                user@minishop.vn / 123456
-              </button>
-            </div>
-            <div style={{ marginTop: '0.3rem' }}>
-              <strong>Tài khoản Quản trị Admin:</strong>{' '}
-              <button
-                type="button"
-                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' }}
-                onClick={() => fillDemoAccount('admin@minishop.vn', 'admin123')}
-              >
-                admin@minishop.vn / admin123
-              </button>
-            </div>
-          </div>
 
           {errorMsg && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.85rem' }}>
@@ -136,8 +112,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full" style={{ width: '100%', padding: '0.8rem' }}>
-              Đăng nhập
+            <button
+              type="submit"
+              className="btn btn-primary btn-full"
+              style={{ width: '100%', padding: '0.8rem' }}
+              disabled={submitting}
+            >
+              {submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
         </div>
