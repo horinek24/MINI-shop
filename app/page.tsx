@@ -35,7 +35,7 @@ export default function HomePage() {
               <h1 className="hero-title">
                 Sống đẹp mỗi ngày
                 <br />
-                cùng Mini Shop
+                cùng <span className="text-gradient">Mini Shop</span>
               </h1>
               <p className="hero-subtitle">Sản phẩm chất lượng cho tổ ấm của bạn.</p>
 
