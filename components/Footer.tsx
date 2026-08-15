@@ -16,27 +16,40 @@ export const Footer: React.FC = () => {
             </Link>
             <p className="footer-tagline">Đồ dùng & trang trí cho cuộc sống tiện nghi và phong cách.</p>
             <div className="footer-socials">
-              <a href="#" className="social-icon" title="Facebook" aria-label="Facebook">
-                <svg viewBox="0 0 24 24">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+              <a
+                href="https://www.facebook.com/trinhtan.phat.33/?locale=vi_VN"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-icon"
+                title="Facebook Mini Shop Decor"
+                aria-label="Facebook"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H7.5v-3H10V9.5C10 7.01 11.49 5.6 13.78 5.6c1.1 0 2.25.2 2.25.2v2.48h-1.27c-1.23 0-1.62.77-1.62 1.56V12h2.78l-.44 3h-2.34v6.8c4.56-.93 8-4.96 8-9.8z" />
                 </svg>
               </a>
-              <a href="#" className="social-icon" title="Instagram" aria-label="Instagram">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              <a
+                href="https://www.tiktok.com/@p_shinaa.24"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-icon"
+                title="TikTok Mini Shop Decor"
+                aria-label="TikTok"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-5.2-1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V5.8a6.32 6.32 0 0 0-1-.08A6.34 6.34 0 0 0 3.05 12a6.34 6.34 0 0 0 10.82 4.46V9.45a8.27 8.27 0 0 0 4.85 1.56v-3.4a4.84 4.84 0 0 1-1.13-.92z" />
                 </svg>
               </a>
-              <a href="#" className="social-icon" title="YouTube" aria-label="YouTube">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-                </svg>
-              </a>
-              <a href="#" className="social-icon" title="TikTok" aria-label="TikTok">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              <a
+                href="https://www.youtube.com/@TanPhat-xh2dr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-icon"
+                title="YouTube Mini Shop Decor"
+                aria-label="YouTube"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                 </svg>
               </a>
             </div>
@@ -46,10 +59,10 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="footer-heading">Thông tin</h4>
             <ul className="footer-links">
-              <li><a href="#">Về chúng tôi</a></li>
-              <li><a href="#">Chính sách bảo mật</a></li>
-              <li><a href="#">Điều khoản sử dụng</a></li>
-              <li><a href="#">Chính sách đổi trả</a></li>
+              <li><Link href="/about">Về chúng tôi</Link></li>
+              <li><Link href="/privacy-policy">Chính sách bảo mật</Link></li>
+              <li><Link href="/terms">Điều khoản sử dụng</Link></li>
+              <li><Link href="/return-policy">Chính sách đổi trả</Link></li>
             </ul>
           </div>
 
@@ -57,10 +70,10 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="footer-heading">Hỗ trợ khách hàng</h4>
             <ul className="footer-links">
-              <li><a href="#">Hướng dẫn mua hàng</a></li>
-              <li><a href="#">Thanh toán & giao hàng</a></li>
-              <li><a href="#">Bảo hành & đổi trả</a></li>
-              <li><a href="#">Câu hỏi thường gặp</a></li>
+              <li><Link href="/guide">Hướng dẫn mua hàng</Link></li>
+              <li><Link href="/payment-shipping">Thanh toán & giao hàng</Link></li>
+              <li><Link href="/warranty-support">Bảo hành & đổi trả</Link></li>
+              <li><Link href="/faq">Câu hỏi thường gặp</Link></li>
             </ul>
           </div>
 
@@ -79,14 +92,14 @@ export const Footer: React.FC = () => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                <span>0123 456 789</span>
+                <span>Hotline hỗ trợ khách hàng</span>
               </li>
               <li className="contact-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
-                <span>support@minishop.vn</span>
+                <span>Email dịch vụ khách hàng</span>
               </li>
               <li className="contact-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -100,7 +113,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; 2025 Mini Shop. All rights reserved.</p>
+          <p>&copy; 2026 Mini Shop Decor. All rights reserved.</p>
         </div>
       </div>
     </footer>

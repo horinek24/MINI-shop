@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { getTotalCount } = useCart();
   const { user, logout, isAdmin } = useAuth();
+  const { wishlist } = useWishlist();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -54,13 +56,18 @@ export const Header: React.FC = () => {
               </Link>
             </li>
             <li>
-              <Link href="/#about" className="nav-link">
+              <Link href="/about" className={`nav-link ${pathname === '/about' ? 'active' : ''}`}>
                 About
               </Link>
             </li>
             <li>
-              <Link href="/#contact" className="nav-link">
+              <Link href="/contact" className={`nav-link ${pathname === '/contact' ? 'active' : ''}`}>
                 Contact
+              </Link>
+            </li>
+            <li>
+              <Link href="/faq" className={`nav-link ${pathname === '/faq' ? 'active' : ''}`}>
+                FAQ
               </Link>
             </li>
           </ul>
@@ -83,8 +90,24 @@ export const Header: React.FC = () => {
             </span>
           </div>
 
-          {/* Cart Button & User Actions */}
+          {/* Cart & Wishlist Buttons & User Actions */}
           <div className="header-actions">
+            <Link
+              href="/wishlist"
+              className={`header-cart-link ${pathname === '/wishlist' ? 'active' : ''}`}
+              title="Sản phẩm yêu thích"
+              style={{ marginRight: '0.35rem' }}
+            >
+              <svg viewBox="0 0 24 24" fill={wishlist.length > 0 ? '#ef4444' : 'none'} stroke={wishlist.length > 0 ? '#ef4444' : 'currentColor'} strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.78-8.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              {wishlist.length > 0 && (
+                <span className="cart-badge" style={{ backgroundColor: '#ef4444' }}>
+                  {wishlist.length}
+                </span>
+              )}
+            </Link>
+
             <Link
               href="/cart"
               className={`header-cart-link ${pathname === '/cart' ? 'active' : ''}`}
@@ -139,6 +162,15 @@ export const Header: React.FC = () => {
                       </div>
                       <Link href="/" className="user-dropdown-item" onClick={() => setDropdownOpen(false)}>
                         Trang chủ
+                      </Link>
+                      <Link href="/profile" className="user-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                        Hồ sơ cá nhân
+                      </Link>
+                      <Link href="/my-orders" className="user-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                        Đơn hàng của tôi
+                      </Link>
+                      <Link href="/wishlist" className="user-dropdown-item" onClick={() => setDropdownOpen(false)}>
+                        Sản phẩm yêu thích ({wishlist.length})
                       </Link>
                       <Link href="/cart" className="user-dropdown-item" onClick={() => setDropdownOpen(false)}>
                         Giỏ hàng

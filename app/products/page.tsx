@@ -216,6 +216,7 @@ function ProductsCatalogContent() {
                   <option value="newest">Sắp xếp: Mới nhất</option>
                   <option value="price-asc">Giá: Thấp đến Cao</option>
                   <option value="price-desc">Giá: Cao đến Thấp</option>
+                  <option value="name-asc">Tên: A đến Z</option>
                 </select>
               </div>
             </div>

@@ -19,6 +19,17 @@ interface OrderItem {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
 }
 
+interface MessageItem {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  status: 'new' | 'read' | 'replied';
+  date: string;
+}
+
 const SAMPLE_IMAGES = [
   { label: 'Bình gốm trang trí', url: '/MiniShop_Assets/assets/images/products/do-my-nghe/binh-gom-trang-tri.webp' },
   { label: 'Sofa phòng khách', url: '/MiniShop_Assets/assets/images/products/noi-that-gia-dung/sofa-phong-khach.webp' },
@@ -32,11 +43,13 @@ export default function AdminPage() {
   const { user, loading, isAdmin, logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'messages'>('dashboard');
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
   const [ordersList, setOrdersList] = useState<OrderItem[]>([]);
+  const [messagesList, setMessagesList] = useState<MessageItem[]>([]);
   const [orderFilter, setOrderFilter] = useState<string>('all');
+  const [messageFilter, setMessageFilter] = useState<string>('all');
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
 
@@ -111,8 +124,27 @@ export default function AdminPage() {
         }));
         setOrdersList(mappedOrders);
       }
-    } catch (e) {
-      console.error('Lỗi khi tải dữ liệu trang quản trị từ Supabase:', e);
+      // Load real messages from Supabase
+      const { data: dbMessages } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (dbMessages) {
+        const mappedMessages: MessageItem[] = dbMessages.map((m: any) => ({
+          id: m.id,
+          name: m.name || 'Khách hàng',
+          email: m.email || '---',
+          phone: m.phone || '---',
+          subject: m.subject || 'Tư vấn sản phẩm',
+          message: m.message || '',
+          status: m.status || 'new',
+          date: m.created_at ? new Date(m.created_at).toLocaleString('vi-VN') : 'Vừa xong',
+        }));
+        setMessagesList(mappedMessages);
+      }
+    } catch (err) {
+      console.error('Failed to load admin data from Supabase:', err);
     } finally {
       setIsDataLoading(false);
     }
@@ -123,6 +155,38 @@ export default function AdminPage() {
       loadAdminData();
     }
   }, [user, isAdmin]);
+
+  const handleUpdateMessageStatus = async (msgId: string, newStatus: string) => {
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('messages').update({ status: newStatus }).eq('id', msgId);
+      if (error) {
+        alert(`Lỗi khi cập nhật trạng thái tin nhắn: ${error.message}`);
+      } else {
+        setMessagesList(
+          messagesList.map((m) => (m.id === msgId ? { ...m, status: newStatus as any } : m))
+        );
+      }
+    } catch (err) {
+      console.error('Lỗi khi cập nhật tin nhắn:', err);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa tin nhắn này khỏi hệ thống?')) {
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('messages').delete().eq('id', msgId);
+        if (error) {
+          alert(`Lỗi khi xóa tin nhắn: ${error.message}`);
+        } else {
+          setMessagesList(messagesList.filter((m) => m.id !== msgId));
+        }
+      } catch (err) {
+        console.error('Lỗi khi xóa tin nhắn:', err);
+      }
+    }
+  };
 
   const resetForm = () => {
     setEditingId(null);
@@ -162,8 +226,12 @@ export default function AdminPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || formPrice <= 0) {
-      alert('Vui lòng nhập tên sản phẩm và giá bán hợp lệ.');
+    if (!formName.trim()) {
+      alert('Vui lòng nhập tên sản phẩm.');
+      return;
+    }
+    if (formPrice <= 0 || isNaN(formPrice)) {
+      alert('Giá sản phẩm phải lớn hơn 0đ.');
       return;
     }
 
@@ -233,9 +301,15 @@ export default function AdminPage() {
   };
 
   const handleUpdateOrderStatus = async (rawId: string, newStatus: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn thay đổi trạng thái đơn hàng sang "${newStatus}"?`)) {
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', rawId);
-    if (!error) {
+
+    if (error) {
+      alert(`Lỗi khi cập nhật trạng thái đơn hàng: ${error.message}`);
+    } else {
       setOrdersList(
         ordersList.map((o) => (o.rawId === rawId ? { ...o, status: newStatus as any } : o))
       );
@@ -307,6 +381,16 @@ export default function AdminPage() {
             </svg>
             Orders ({ordersList.length})
           </button>
+
+          <button
+            className={`admin-nav-btn ${activeTab === 'messages' ? 'active' : ''}`}
+            onClick={() => setActiveTab('messages')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Messages ({messagesList.filter(m => m.status === 'new').length > 0 ? `${messagesList.length} (${messagesList.filter(m => m.status === 'new').length} mới)` : messagesList.length})
+          </button>
         </nav>
 
         <div className="admin-sidebar-footer">
@@ -335,6 +419,7 @@ export default function AdminPage() {
               {activeTab === 'dashboard' && 'Dashboard Overview'}
               {activeTab === 'products' && 'Product Management'}
               {activeTab === 'orders' && 'Order Management'}
+              {activeTab === 'messages' && 'Messages & Customer Support'}
             </h2>
             <p>Quản lý sản phẩm, đơn hàng và kho dữ liệu Supabase thời gian thực.</p>
           </div>
@@ -838,6 +923,122 @@ export default function AdminPage() {
                             </td>
                           </tr>
                         ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* TAB 4: MESSAGES MANAGEMENT */}
+          {activeTab === 'messages' && (
+            <section className="admin-tab-view active">
+              <div className="admin-card">
+                <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3>Tin Nhắn Tư Vấn & Hỗ Trợ Khách Hàng ({messagesList.length})</h3>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--color-muted)', fontWeight: 600 }}>Lọc trạng thái:</span>
+                    <select
+                      className="admin-select-sm"
+                      value={messageFilter}
+                      onChange={(e) => setMessageFilter(e.target.value)}
+                    >
+                      <option value="all">Tất cả ({messagesList.length})</option>
+                      <option value="new">Tin mới chưa đọc ({messagesList.filter(m => m.status === 'new').length})</option>
+                      <option value="read">Đã đọc ({messagesList.filter(m => m.status === 'read').length})</option>
+                      <option value="replied">Đã phản hồi ({messagesList.filter(m => m.status === 'replied').length})</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Khách hàng</th>
+                        <th>Email & Số điện thoại</th>
+                        <th>Chủ đề tư vấn</th>
+                        <th>Nội dung tin nhắn</th>
+                        <th>Thời gian gửi</th>
+                        <th>Trạng thái</th>
+                        <th style={{ textAlign: 'right' }}>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {messagesList
+                        .filter((m) => (messageFilter === 'all' ? true : m.status === messageFilter))
+                        .length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>
+                            Không tìm thấy tin nhắn hỗ trợ nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        messagesList
+                          .filter((m) => (messageFilter === 'all' ? true : m.status === messageFilter))
+                          .map((msg) => (
+                            <tr key={msg.id} style={{ backgroundColor: msg.status === 'new' ? '#fffdf5' : 'transparent' }}>
+                              <td>
+                                <strong>{msg.name}</strong>
+                              </td>
+                              <td>
+                                <div style={{ fontSize: '0.88rem' }}>{msg.email}</div>
+                                <div style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{msg.phone}</div>
+                              </td>
+                              <td>
+                                <span className="badge-cat">{msg.subject}</span>
+                              </td>
+                              <td style={{ maxWidth: '300px' }}>
+                                <p style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                  {msg.message}
+                                </p>
+                              </td>
+                              <td style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{msg.date}</td>
+                              <td>
+                                <span className={`badge-status ${msg.status === 'replied' ? 'active' : msg.status === 'read' ? 'processing' : 'new'}`}>
+                                  • {msg.status === 'new' ? 'Tin mới' : msg.status === 'read' ? 'Đã đọc' : 'Đã phản hồi'}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  <a
+                                    href={`mailto:${msg.email}?subject=Re: [Mini Shop Decor] ${encodeURIComponent(msg.subject)}`}
+                                    className="btn btn-outline-gray btn-sm"
+                                    title="Mở ứng dụng email để gửi thư phản hồi cho khách"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                      <polyline points="22,6 12,13 2,6" />
+                                    </svg>
+                                    Email
+                                  </a>
+                                  <select
+                                    className="admin-select-sm"
+                                    value={msg.status}
+                                    onChange={(e) => handleUpdateMessageStatus(msg.id, e.target.value)}
+                                  >
+                                    <option value="new">Mới</option>
+                                    <option value="read">Đã đọc</option>
+                                    <option value="replied">Đã phản hồi</option>
+                                  </select>
+                                  <button
+                                    className="btn-icon danger"
+                                    title="Xóa tin nhắn"
+                                    onClick={() => handleDeleteMessage(msg.id)}
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                       )}
                     </tbody>
                   </table>

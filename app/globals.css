@@ -2712,4 +2712,129 @@ button, input {
   margin-top: 0.2rem;
 }
 
+/* ==========================================================================
+   POLICY & INFORMATIONAL CONTENT PAGES STYLING
+   ========================================================================== */
+.policy-page-wrapper {
+  background-color: var(--color-bg-body);
+  padding: 3rem 0 5rem 0;
+}
+
+.policy-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border);
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .policy-card {
+    padding: 1.5rem;
+  }
+}
+
+.policy-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1.5rem;
+}
+
+.policy-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-dark);
+  margin-bottom: 0.5rem;
+}
+
+.policy-subtitle {
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.policy-section {
+  margin-bottom: 2rem;
+}
+
+.policy-section:last-child {
+  margin-bottom: 0;
+}
+
+.policy-heading {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.policy-paragraph {
+  font-size: 0.98rem;
+  color: #4b5563;
+  line-height: 1.75;
+  margin-bottom: 1rem;
+}
+
+.policy-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.25rem;
+}
+
+.policy-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  font-size: 0.98rem;
+  color: #4b5563;
+  line-height: 1.7;
+  margin-bottom: 0.6rem;
+}
+
+.policy-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0.4rem;
+  color: var(--color-primary);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.faq-accordion-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: var(--transition-base);
+}
+
+.faq-accordion-header {
+  padding: 1.2rem 1.5rem;
+  background-color: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-dark);
+  user-select: none;
+}
+
+.faq-accordion-header:hover {
+  background-color: #f1f5f9;
+}
+
+.faq-accordion-body {
+  padding: 1.25rem 1.5rem;
+  background-color: #ffffff;
+  border-top: 1px solid var(--color-border);
+  color: #4b5563;
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+
 

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatVND } from '@/data/products';
 import { Breadcrumb } from '@/components/Breadcrumb';
+import { VIETNAM_PROVINCES } from '@/data/vietnamLocations';
 
 export default function CheckoutPage() {
   const { cart, getSubtotal, appliedCouponDiscount, clearCart } = useCart();
@@ -14,8 +15,13 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState<string>(user?.name || '');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>(user?.email || '');
-  const [province, setProvince] = useState<string>('hanoi');
-  const [district, setDistrict] = useState<string>('');
+  
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('hanoi');
+  const selectedProvince = VIETNAM_PROVINCES.find((p) => p.id === selectedProvinceId) || VIETNAM_PROVINCES[0];
+  const [selectedDistrictName, setSelectedDistrictName] = useState<string>(
+    selectedProvince.districts[0]?.name || ''
+  );
+
   const [address, setAddress] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cod');
@@ -28,14 +34,39 @@ export default function CheckoutPage() {
   const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
   const finalTotal = Math.max(0, subtotal + shippingFee - appliedCouponDiscount);
 
+  const handleProvinceChange = (newProvinceId: string) => {
+    setSelectedProvinceId(newProvinceId);
+    const prov = VIETNAM_PROVINCES.find((p) => p.id === newProvinceId);
+    if (prov && prov.districts.length > 0) {
+      setSelectedDistrictName(prov.districts[0].name);
+    } else {
+      setSelectedDistrictName('');
+    }
+    setErrors({ ...errors, province: false, district: false });
+  };
+
+  useEffect(() => {
+    if (user?.email) {
+      const savedPhone = localStorage.getItem(`profile_phone_${user.email}`);
+      const savedProv = localStorage.getItem(`profile_province_${user.email}`);
+      const savedDist = localStorage.getItem(`profile_district_${user.email}`);
+      const savedAddr = localStorage.getItem(`profile_address_${user.email}`);
+
+      if (savedPhone && !phone) setPhone(savedPhone);
+      if (savedProv) setSelectedProvinceId(savedProv);
+      if (savedDist) setSelectedDistrictName(savedDist);
+      if (savedAddr && !address) setAddress(savedAddr);
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: Record<string, boolean> = {};
     if (!fullName.trim()) newErrors['fullName'] = true;
     if (!phone.trim() || phone.trim().length < 9) newErrors['phone'] = true;
-    if (!province) newErrors['province'] = true;
-    if (!district.trim()) newErrors['district'] = true;
+    if (!selectedProvinceId) newErrors['province'] = true;
+    if (!selectedDistrictName) newErrors['district'] = true;
     if (!address.trim()) newErrors['address'] = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -44,16 +75,7 @@ export default function CheckoutPage() {
     }
 
     const orderCode = 'MS' + Math.floor(100000 + Math.random() * 900000);
-
-    const provinceLabels: Record<string, string> = {
-      hanoi: 'Hà Nội',
-      hcm: 'TP. Hồ Chí Minh',
-      danang: 'Đà Nẵng',
-      haiphong: 'Hải Phòng',
-      cantho: 'Cần Thơ',
-      other: 'Tỉnh / Thành khác',
-    };
-    const fullAddressStr = `${address.trim()}, ${district.trim()}, ${provinceLabels[province] || province}`;
+    const fullAddressStr = `${address.trim()}, ${selectedDistrictName}, ${selectedProvince.name}`;
 
     const orderItems = cart.map((item) => ({
       product_id: item.id,
@@ -76,6 +98,8 @@ export default function CheckoutPage() {
         customer_address: fullAddressStr,
         notes: notes.trim() || null,
         total_amount: finalTotal,
+        discount_amount: appliedCouponDiscount,
+        coupon_code: appliedCouponDiscount > 0 ? 'KM_DECOR' : null,
         items: orderItems,
         payment_method: paymentMethod,
         status: 'pending',
@@ -149,7 +173,7 @@ export default function CheckoutPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Địa chỉ giao hàng:</span>
-                <strong>{address}, {district}</strong>
+                <strong>{address}, {selectedDistrictName}, {selectedProvince.name}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Phương thức:</span>
@@ -258,15 +282,14 @@ export default function CheckoutPage() {
                     <select
                       id="province"
                       className={`form-input form-select ${errors['province'] ? 'is-error' : ''}`}
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
+                      value={selectedProvinceId}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
                     >
-                      <option value="hanoi">Hà Nội</option>
-                      <option value="hcm">TP. Hồ Chí Minh</option>
-                      <option value="danang">Đà Nẵng</option>
-                      <option value="haiphong">Hải Phòng</option>
-                      <option value="cantho">Cần Thơ</option>
-                      <option value="other">Tỉnh / Thành khác</option>
+                      {VIETNAM_PROVINCES.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -274,20 +297,21 @@ export default function CheckoutPage() {
                     <label htmlFor="district" className="form-label">
                       Quận / Huyện <span className="required">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       id="district"
-                      className={`form-input ${errors['district'] ? 'is-error' : ''}`}
-                      placeholder="Quận Cầu Giấy"
-                      value={district}
+                      className={`form-input form-select ${errors['district'] ? 'is-error' : ''}`}
+                      value={selectedDistrictName}
                       onChange={(e) => {
-                        setDistrict(e.target.value);
+                        setSelectedDistrictName(e.target.value);
                         setErrors({ ...errors, district: false });
                       }}
-                    />
-                    {errors['district'] && (
-                      <span className="field-error visible">Vui lòng nhập quận / huyện.</span>
-                    )}
+                    >
+                      {selectedProvince.districts.map((d) => (
+                        <option key={d.id} value={d.name}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
