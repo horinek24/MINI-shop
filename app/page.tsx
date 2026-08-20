@@ -106,8 +106,11 @@ export default function HomePage() {
             {/* Right Column: Hero Banner Image */}
             <div className="hero-image-wrapper">
               <img
-                src="/MiniShop_Assets/assets/images/banner/banner-trang-chu-mini-shop.webp"
+                src="/MiniShop_Assets/assets/images/banner/home-hero-banner.jpg"
                 alt="Sống đẹp mỗi ngày cùng Mini Shop - Đồ trang trí & Nội thất"
+                loading="eager"
+                decoding="async"
+                style={{ width: '100%', height: 'auto', borderRadius: 'var(--radius-md)', objectFit: 'cover' }}
               />
             </div>
           </div>

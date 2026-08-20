@@ -48,7 +48,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </svg>
         </button>
         <Link href={`/products/${product.id}`}>
-          <img src={product.image} alt={product.name} />
+          <img src={product.image} alt={product.name} loading="lazy" decoding="async" />
         </Link>
       </div>
 

@@ -49,96 +49,146 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-page" style={{ minHeight: '80vh', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-      {/* Left decorative panel */}
-      <div className="auth-panel-left" style={{ background: '#f0fdf4', padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="auth-brand" style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '2rem' }}>
-          Mini Shop
-        </div>
-        <img
-          src="/MiniShop_Assets/assets/images/banner/banner-trang-chu-mini-shop.webp"
-          alt="Mini Shop Register"
-          className="auth-hero-img"
-          style={{ width: '100%', maxWidth: '340px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-hover)' }}
-        />
-        <div className="auth-tagline" style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <h2>Tham gia cùng Mini Shop</h2>
-          <p>Nhận ngay ưu đãi cho thành viên mới và trải nghiệm mua sắm dễ dàng.</p>
-        </div>
-      </div>
+    <div className="auth-page-container">
+      <div className="auth-card-wrapper">
+        {/* Left decorative panel */}
+        <div className="auth-panel-left">
+          <div className="auth-left-content">
+            <div className="auth-left-brand">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h6v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z" />
+              </svg>
+              Mini Shop Decor
+            </div>
 
-      {/* Right form panel */}
-      <div className="auth-panel-right" style={{ padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <div className="auth-form-wrap" style={{ width: '100%', maxWidth: '400px' }}>
-          <h1 className="auth-form-title" style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.4rem' }}>
-            Đăng ký tài khoản
-          </h1>
-          <p className="auth-form-subtitle" style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: '1.5rem' }}>
-            Đã có tài khoản?{' '}
-            <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-              Đăng nhập ngay
-            </Link>
-          </p>
+            <div className="auth-banner-img-wrap">
+              <img
+                src="/MiniShop_Assets/assets/images/banner/auth-banner.jpg"
+                alt="Mini Shop Register Banner"
+                loading="eager"
+              />
+            </div>
+
+            <h2 className="auth-left-heading">Tham gia cùng Mini Shop</h2>
+            <p className="auth-left-sub">
+              Tạo tài khoản ngay hôm nay để nhận ưu đãi thành viên mới và theo dõi đơn hàng dễ dàng.
+            </p>
+
+            <div className="auth-left-features">
+              <span className="auth-feature-chip">🎁 Ưu đãi thành viên</span>
+              <span className="auth-feature-chip">⚡ Thanh toán nhanh</span>
+              <span className="auth-feature-chip">📦 Quản lý đơn hàng</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right form panel */}
+        <div className="auth-panel-right">
+          <div className="auth-form-header">
+            <h1 className="auth-form-title">Tạo tài khoản</h1>
+            <p className="auth-form-subtitle">
+              Đã có tài khoản?{' '}
+              <Link href="/login">
+                Đăng nhập ngay
+              </Link>
+            </p>
+          </div>
 
           {errorMsg && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.85rem' }}>
+            <div className="auth-error-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
               {errorMsg}
             </div>
           )}
 
           <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label">Họ và tên *</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Nguyễn Văn A"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <div className="form-group-v2">
+              <label className="form-label-v2">Họ và tên *</label>
+              <div className="input-with-icon">
+                <span className="input-icon-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  className="form-input-v2"
+                  placeholder="Nguyễn Văn A"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label">Email *</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="example@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <div className="form-group-v2">
+              <label className="form-label-v2">Email đăng ký *</label>
+              <div className="input-with-icon">
+                <span className="input-icon-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  className="form-input-v2"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label className="form-label">Mật khẩu * (Tối thiểu 6 ký tự)</label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="form-group-v2">
+              <label className="form-label-v2">Mật khẩu * (Tối thiểu 6 ký tự)</label>
+              <div className="input-with-icon">
+                <span className="input-icon-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  className="form-input-v2"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Xác nhận mật khẩu *</label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+            <div className="form-group-v2">
+              <label className="form-label-v2">Xác nhận mật khẩu *</label>
+              <div className="input-with-icon">
+                <span className="input-icon-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  className="form-input-v2"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <button
               type="submit"
-              className="btn btn-primary btn-full"
-              style={{ width: '100%', padding: '0.8rem' }}
+              className="btn-auth-submit"
               disabled={submitting}
             >
               {submitting ? 'Đang tạo tài khoản...' : 'Đăng ký tài khoản'}

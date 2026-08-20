@@ -97,16 +97,18 @@ export default function ProductDetailPage() {
   useEffect(() => {
     async function loadDetail() {
       setLoading(true);
-      const fetchedProduct = await getProductByIdFromSupabase(productId);
-      const allProducts = await getProductsFromSupabase();
+      const [fetchedProduct, allProducts] = await Promise.all([
+        getProductByIdFromSupabase(productId),
+        getProductsFromSupabase()
+      ]);
 
       if (fetchedProduct) {
         setProduct(fetchedProduct);
         setSelectedImg(fetchedProduct.image);
         const related = allProducts
-          .filter((p) => p.id !== fetchedProduct.id && (p.category === fetchedProduct.category || p.category !== fetchedProduct.category))
-          .slice(0, 5);
-        setRelatedProducts(related);
+          .filter((p) => p.id !== fetchedProduct.id && p.category === fetchedProduct.category)
+          .slice(0, 4);
+        setRelatedProducts(related.length > 0 ? related : allProducts.filter((p) => p.id !== fetchedProduct.id).slice(0, 4));
         loadReviews(fetchedProduct.id);
       } else if (allProducts.length > 0) {
         const fallbackProduct = allProducts[0];
@@ -145,7 +147,7 @@ export default function ProductDetailPage() {
           {/* Left: Product Image Gallery */}
           <div className="product-gallery-card">
             <div className="main-image-wrapper">
-              <img src={selectedImg} alt={product.name} id="main-product-image" />
+              <img src={selectedImg} alt={product.name} id="main-product-image" loading="eager" decoding="async" />
             </div>
 
             <div className="gallery-thumbnails" id="gallery-thumbnails-container">
@@ -155,7 +157,7 @@ export default function ProductDetailPage() {
                   className={`thumb-item ${selectedImg === thumbSrc ? 'active' : ''}`}
                   onClick={() => setSelectedImg(thumbSrc)}
                 >
-                  <img src={thumbSrc} alt={`${product.name} thumb ${index + 1}`} />
+                  <img src={thumbSrc} alt={`${product.name} thumb ${index + 1}`} loading="lazy" decoding="async" />
                 </div>
               ))}
             </div>
