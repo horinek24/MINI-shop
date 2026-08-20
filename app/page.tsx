@@ -45,17 +45,27 @@ export default function HomePage() {
           <div className="hero-card">
             {/* Left Column: Copy & Actions */}
             <div className="hero-content">
+              <div className="hero-badge-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#dcfce7', color: '#15803d', padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', border: '1px solid rgba(21, 128, 61, 0.2)' }}>
+                ✨ Bộ Sưu Tập Nội Thất Decor 2026
+              </div>
+
               <h1 className="hero-title">
                 Sống đẹp mỗi ngày
                 <br />
-                cùng <span className="text-gradient">Mini Shop</span>
+                cùng <span className="text-gradient">Mini Shop Decor</span>
               </h1>
-              <p className="hero-subtitle">Sản phẩm chất lượng cho tổ ấm của bạn.</p>
+              <p className="hero-subtitle">
+                Khám phá bộ sưu tập nội thất & đồ trang trí tinh tế cho không gian sống ấm cúng, sang trọng.
+              </p>
 
-              <div className="hero-cta">
-                <Link href="/products" className="btn btn-primary">
-                  Mua sắm ngay
+              <div className="hero-cta" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.25rem', flexWrap: 'wrap' }}>
+                <Link href="/products" className="btn btn-primary" style={{ padding: '0.8rem 1.8rem', fontSize: '1rem', fontWeight: 700 }}>
+                  Khám phá ngay
                 </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
+                  <span style={{ color: '#f59e0b', fontSize: '1rem' }}>★★★★★</span>
+                  <span>4.9/5 (1,200+ đánh giá)</span>
+                </div>
               </div>
 
               {/* 3 Service Feature Commitments */}
@@ -83,7 +93,7 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <div className="feature-text">
-                    <span className="feature-title">Bảo hành chính hãng</span>
+                    <span className="feature-title">Bảo hành 1 đổi 1</span>
                     <span className="feature-desc">7 ngày đổi trả</span>
                   </div>
                 </div>
